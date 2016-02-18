@@ -5,18 +5,20 @@ using System.Collections.Generic;
 
 namespace Assets.Rage.GSRAsset
 {
-    class GSRSignalProcessor
+    public class GSRSignalProcessor
     {
         public Dictionary<int, List<int>> channelsValues;
         public String pathToBinaryFile;
-        public int gsrValuesReadTime;
+        public double gsrValuesReadTime;
+        public Dictionary<int, Dictionary<double, int>> coordinates;
+
 
         public GSRSignalProcessor()
         {
             channelsValues = new Dictionary<int, List<int>>();
             //pathToBinaryFile = "E:/Projects/Rage/sample-binary.txt";
             pathToBinaryFile = ConfigurationManager.AppSettings.Get("BinaryFile");
-            gsrValuesReadTime = DateTime.Now.Millisecond;
+            gsrValuesReadTime = (double)(DateTime.Now - DateTime.MinValue).TotalMilliseconds;
         }
 
         public void SetPathToBinaryFile(String path)
@@ -75,7 +77,7 @@ namespace Assets.Rage.GSRAsset
                 }
             }
 
-            gsrValuesReadTime = DateTime.Now.Millisecond;
+            //gsrValuesReadTime = DateTime.Now.Millisecond;
             return channelsValues;
         }
 
@@ -110,6 +112,37 @@ namespace Assets.Rage.GSRAsset
                     Console.WriteLine("value: " + value);
                 }
             }
+        }
+
+        public void FillCoordinates()
+        {
+            coordinates = new Dictionary<int, Dictionary<double, int>>();
+
+            foreach (KeyValuePair<int, List<int>> entry in channelsValues)
+            {
+                int currentChannel = entry.Key;
+                List<int> channelValues = entry.Value;
+                Dictionary<double, int> currentChannelCoordinates = new Dictionary<double, int>();
+                int channelValuesCount = channelValues.Count;
+                for (int i = channelValuesCount - 1; i > -1; i--)
+                {
+                    double time = gsrValuesReadTime - (channelValuesCount - i - 1) * 10;
+                    if (!currentChannelCoordinates.ContainsKey(time))
+                    {
+                        currentChannelCoordinates.Add(time, channelValues[i]);
+                    }
+                }
+
+                if (!coordinates.ContainsKey(currentChannel))
+                {
+                    coordinates.Add(currentChannel, currentChannelCoordinates);
+                }
+            }
+        }
+
+        public Dictionary<int, Dictionary<double, int>> GetCoordinates()
+        {
+            return coordinates;
         }
     }
 }
