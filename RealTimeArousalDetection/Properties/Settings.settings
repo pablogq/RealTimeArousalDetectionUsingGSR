@@ -1,0 +1,36 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="RealTimeArousalDetection.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="MinAbsoluteArousalArea" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">200</Value>
+    </Setting>
+    <Setting Name="MinAverageArousalArea" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">200</Value>
+    </Setting>
+    <Setting Name="MaxAbsoluteArousalArea" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">1326</Value>
+    </Setting>
+    <Setting Name="MaxAverageArousalArea" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">1326</Value>
+    </Setting>
+    <Setting Name="MinAbsoluteTonicAmplitude" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">0.001</Value>
+    </Setting>
+    <Setting Name="MinAverageTonicAmplitude" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">0.001</Value>
+    </Setting>
+    <Setting Name="MaxAbsoluteTonicAmplitude" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">0.082</Value>
+    </Setting>
+    <Setting Name="MaxAverageTonicAmplitude" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">0.082</Value>
+    </Setting>
+    <Setting Name="NumberParticipants" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">1</Value>
+    </Setting>
+    <Setting Name="LogFile" Type="System.String" Scope="User">
+      <Value Profile="(Default)">C:/Users/ddessy/log.txt</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>
