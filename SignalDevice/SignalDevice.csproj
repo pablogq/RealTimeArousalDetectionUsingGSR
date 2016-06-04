@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{2276781F-BEE6-4FFA-9ECC-EC6F00880ECA}</ProjectGuid>
+    <ProjectGuid>{D44C2378-492F-4D69-823C-024EDF41DD98}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>RealTimeArousalDetection</RootNamespace>
-    <AssemblyName>RealTimeArousalDetection</AssemblyName>
+    <RootNamespace>SignalDevice</RootNamespace>
+    <AssemblyName>SignalDevice</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -31,10 +31,13 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="RageAssetManager, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\unity\Roll a Ball\Assets\Rage\RageAssetManager.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -43,47 +46,27 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ArousalFeature.cs" />
-    <Compile Include="ArousalStatistics.cs" />
-    <Compile Include="ButterworthFilterCoordinates.cs" />
-    <Compile Include="ButterworthPassType.cs" />
-    <Compile Include="InflectionPoint.cs" />
-    <Compile Include="FilterButterworth.cs" />
-    <Compile Include="FilterMedian.cs" />
-    <Compile Include="GSRSignalProcessor.cs" />
-    <Compile Include="InflectionLine.cs" />
-    <Compile Include="InflectionLineDirection.cs" />
-    <Compile Include="ExtremaType.cs" />
+    <Compile Include="Cache.cs" />
+    <Compile Include="ISignalDeviceController.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="GSRHRDevice.cs" />
     <Compile Include="Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
-    <Compile Include="TetradArray.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TetradUtil.cs" />
-    <Compile Include="TimeWindowType.cs" />
-    <Compile Include="TonicStatistics.cs" />
+    <Compile Include="SignalDeviceSerialPort.cs" />
+    <Compile Include="SignalDeviceUtils.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    <None Include="app.config" />
     <None Include="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings1.Designer.cs</LastGenOutput>
+      <Generator>PublicSettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\RageAssetManager\RageAssetManager.csproj">
-      <Project>{da8e9056-2e52-4029-81eb-a2d167614c47}</Project>
-      <Name>RageAssetManager</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\SignalDevice\SignalDevice.csproj">
-      <Project>{d44c2378-492f-4d69-823c-024edf41dd98}</Project>
-      <Name>SignalDevice</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Logger\Logger.csproj">
+    <ProjectReference Include="..\RealTimeArousalDetectionUsingGSR\Logger\Logger.csproj">
       <Project>{ba4e5dc4-5690-4e45-b690-786dac398e6a}</Project>
       <Name>Logger</Name>
     </ProjectReference>

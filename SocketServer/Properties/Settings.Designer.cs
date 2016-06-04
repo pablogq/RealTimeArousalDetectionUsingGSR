@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace DisplayGSRSignal.Properties {
+namespace SocketServer.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
@@ -25,13 +25,25 @@ namespace DisplayGSRSignal.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("1")]
-        public string www {
+        [global::System.Configuration.DefaultSettingValueAttribute("10116")]
+        public int SocketPortNumber {
             get {
-                return ((string)(this["www"]));
+                return ((int)(this["SocketPortNumber"]));
             }
             set {
-                this["www"] = value;
+                this["SocketPortNumber"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("C:/Users/ddessy/log.txt")]
+        public string LogFile {
+            get {
+                return ((string)(this["LogFile"]));
+            }
+            set {
+                this["LogFile"] = value;
             }
         }
     }
