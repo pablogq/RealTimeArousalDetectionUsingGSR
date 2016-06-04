@@ -13,7 +13,7 @@ namespace Assets.Rage.GSRAsset
         private Decimal mean;
         private Decimal std;
         private String name;
-        private int count;
+        private double count;
 
         public ArousalFeature()
         {
@@ -73,7 +73,7 @@ namespace Assets.Rage.GSRAsset
             }
         }
 
-        public int Count
+        public double Count
         {
             get
             {

@@ -5,7 +5,6 @@ using System.Configuration;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web.Script.Serialization;
-using RealTimeArousalDetection.Properties;
 
 namespace Assets.Rage.GSRAsset
 {
@@ -18,23 +17,11 @@ namespace Assets.Rage.GSRAsset
         public const int GSR_CHANNEL = 0;
         public const int HR_CHANNEL = 1;
         public const double BUTTERWORTH_TONIC_PHASIC_FREQUENCY = 0.05;
-        private Settings settings = Settings.Default;
+        private Configuration settings = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
 
         private int arousalLevel;
 
-        private double? minArousalArea;
-        private double? maxArousalArea;
-        private double? minTonicAmplitude;
-        private double? maxTonicAmplitude;
-
-        private double calibrationMinArousalArea;
-        private double calibrationMaxArousalArea;
-        private double calibrationMinTonicAmplitude;
-        private double calibrationMaxTonicAmplitude;
-
         private double defaultTimeWindow;
-
-        private Logger logger = new Logger();
 
         public int ArousalLevel
         {
@@ -55,11 +42,6 @@ namespace Assets.Rage.GSRAsset
             {
                 return defaultTimeWindow;
             }
-
-            set
-            {
-                defaultTimeWindow = value;
-            }
         }
 
         public GSRSignalProcessor()
@@ -68,13 +50,22 @@ namespace Assets.Rage.GSRAsset
             pathToBinaryFile = ConfigurationManager.AppSettings.Get("BinaryFile");
             gsrValuesReadTime = (double)(DateTime.Now - DateTime.MinValue).TotalMilliseconds;
 
-            arousalLevel = 3;
-            defaultTimeWindow = 10;
+            arousalLevel = Convert .ToInt32(settings.AppSettings.Settings["ArousalLevel"].Value);
+            defaultTimeWindow = GetAppValue("DefaultTimeWindow");
 
-            calibrationMinArousalArea = settings.MinAverageArousalArea;
-            calibrationMaxArousalArea = settings.MaxAverageArousalArea;
-            calibrationMinTonicAmplitude = settings.MinAverageTonicAmplitude;
-            calibrationMaxTonicAmplitude = settings.MaxAverageTonicAmplitude;
+            //re-initialize calibration data
+            settings.AppSettings.Settings["CalibrationMinArousalArea"].Value = 
+            
+                settings.AppSettings.Settings["MinAverageArousalArea"].Value;
+            settings.AppSettings.Settings["CalibrationMaxArousalArea"].Value =
+                settings.AppSettings.Settings["MaxAverageArousalArea"].Value;
+            settings.AppSettings.Settings["CalibrationMinTonicAmplitude"].Value = 
+                settings.AppSettings.Settings["MinAverageTonicAmplitude"].Value;
+            settings.AppSettings.Settings["CalibrationMaxTonicAmplitude"].Value =
+                settings.AppSettings.Settings["MaxAverageTonicAmplitude"].Value;
+
+            //settings.Save(ConfigurationSaveMode.Modified);
+            //ConfigurationManager.RefreshSection("appSettings");
 
             /*
             minArousalArea = -1.0;
@@ -176,28 +167,30 @@ namespace Assets.Rage.GSRAsset
             return filterMedian.GetMedianFilterPoints();
         }
 
-        public ArousalStatistics GetArousalStatistics(Dictionary<double, double> coordinates, double timeWindow, TimeWindowMeasure timewindowType, int sampleRate)
+        public ArousalStatistics GetArousalStatistics(Dictionary<double, double> coordinates, double timeWindow, TimeWindowMeasure timeWindowType, int sampleRate)
         {
             if (timeWindow.CompareTo(0) <= 0 || sampleRate <= 0 || coordinates.Count <= 0) return null;
 
-            int numberOfAffectedPoints = GetNumberOfAffectedPoints(timeWindow, timewindowType, sampleRate);
+            int numberOfAffectedPoints = GetNumberOfAffectedPoints(timeWindow, timeWindowType, sampleRate);
 
             if (coordinates.Count < numberOfAffectedPoints) return GetArousalStatistics(coordinates);
-            return GetArousalInfoForCoordinates(coordinates, numberOfAffectedPoints);
+            double timeWindowInSeconds = timeWindowType.Equals(TimeWindowMeasure.Milliseconds) ? timeWindow / 1000 : timeWindow;
+            return GetArousalInfoForCoordinates(coordinates, numberOfAffectedPoints, timeWindow);
         }
 
         public ArousalStatistics GetArousalStatistics(Dictionary<double, double> coordinates)
         {
-            return GetArousalInfoForCoordinates(coordinates, coordinates.Count);
+            return GetArousalInfoForCoordinates(coordinates, coordinates.Count, defaultTimeWindow);
         }
 
-        private ArousalStatistics GetArousalInfoForCoordinates(Dictionary<double, double> coordinates, int numberOfAffectedPoints)
+        private ArousalStatistics GetArousalInfoForCoordinates(Dictionary<double, double> coordinates, int numberOfAffectedPoints, double timeWindow)
         {
             InflectionLine inflectionLinesHandler = new InflectionLine();
             List<InflectionPoint> inflectionPoints = inflectionLinesHandler.GetInflectionPoints(AffectedCoordinatePoints(coordinates, numberOfAffectedPoints));
             ArousalStatistics result = new ArousalStatistics();
-            result = GetArousalInfoForInflectionPoints(inflectionPoints);
-            result.SCRArousalArea = GetArousalArea(coordinates, numberOfAffectedPoints);
+            result = GetArousalInfoForInflectionPoints(inflectionPoints, timeWindow);
+            result.SCRArousalArea = GetArousalArea(coordinates, numberOfAffectedPoints, timeWindow) ;
+            result.MovingAverage = GetMovingAverage(coordinates, numberOfAffectedPoints) ;
             result.SCRAchievedArousalLevel = GetPhasicLevel(result.SCRArousalArea);
             SetMinMaxArousalArea(result.SCRArousalArea);
             
@@ -206,53 +199,72 @@ namespace Assets.Rage.GSRAsset
 
         private void SetMinMaxArousalArea(double scrArousalArea)
         {
-            if (minArousalArea == null) minArousalArea = scrArousalArea;
-            if(scrArousalArea.CompareTo(minArousalArea) < 0)
+            if (Convert.ToDouble( settings.AppSettings.Settings["MinArousalArea"].Value ).CompareTo(-1) == 0)
             {
-                minArousalArea = scrArousalArea;
+                settings.AppSettings.Settings["MinArousalArea"].Value = scrArousalArea.ToString();
+            }
+            else if (scrArousalArea.CompareTo(
+                     Convert.ToDouble(settings.AppSettings.Settings["MinArousalArea"].Value)) < 0)
+            {
+                settings.AppSettings.Settings["MinArousalArea"].Value = scrArousalArea.ToString();
             }
 
-            if (maxArousalArea == null) maxArousalArea = scrArousalArea;
-            if(scrArousalArea.CompareTo(maxArousalArea) > 0)
+            if (Convert.ToDouble(settings.AppSettings.Settings["MaxArousalArea"].Value).CompareTo(-1) == 0)
             {
-                maxArousalArea = scrArousalArea;
+                settings.AppSettings.Settings["MaxArousalArea"].Value = scrArousalArea.ToString();
             }
+            else if (scrArousalArea.CompareTo(Convert.ToDouble(settings.AppSettings.Settings["MaxArousalArea"].Value)) > 0)
+            {
+                settings.AppSettings.Settings["MaxArousalArea"].Value = scrArousalArea.ToString();
+            }
+
+            settings.Save(ConfigurationSaveMode.Minimal);
+            ConfigurationManager.RefreshSection("appSettings");
         }
 
         private int GetTonicLevel(double tonicAverageAmplitude)
         {
-            if (tonicAverageAmplitude.CompareTo(calibrationMinTonicAmplitude) <= 0)
+            if (tonicAverageAmplitude.CompareTo(
+                GetAppValue("MinAverageTonicAmplitude")) <= 0)
             {
-                calibrationMinTonicAmplitude = tonicAverageAmplitude;
+                settings.AppSettings.Settings["MinAverageTonicAmplitude"].Value = tonicAverageAmplitude.ToString();
                 return 1;
             }
 
-            if (tonicAverageAmplitude.CompareTo(calibrationMaxTonicAmplitude) >= 0)
+            if (tonicAverageAmplitude.CompareTo(
+                GetAppValue("MaxAverageTonicAmplitude")) >= 0)
             {
-                calibrationMaxTonicAmplitude = tonicAverageAmplitude;
+                settings.AppSettings.Settings["MaxAverageTonicAmplitude"].Value = tonicAverageAmplitude.ToString();
                 return arousalLevel;
             }
 
-            double step = (arousalLevel != 0) ? (calibrationMaxTonicAmplitude - calibrationMinTonicAmplitude) / arousalLevel : 0.0;
-            return (step.CompareTo(0.0) != 0) ? (int)Math.Ceiling((tonicAverageAmplitude - calibrationMinTonicAmplitude) / step) : 0;
+            settings.Save(ConfigurationSaveMode.Modified);
+            ConfigurationManager.RefreshSection("appSettings");
+
+            double step = (arousalLevel != 0) ? (GetAppValue("MaxAverageTonicAmplitude") - GetAppValue("MinAverageTonicAmplitude")) / arousalLevel : 0.0;
+            return (step.CompareTo(0.0) != 0) ? (int)Math.Ceiling((tonicAverageAmplitude -
+                GetAppValue("MinAverageTonicAmplitude")) / step) : 0;
         }
 
         private int GetPhasicLevel(double scrArousalArea)
         {
-            if(scrArousalArea.CompareTo(calibrationMinArousalArea) <= 0)
+            if(scrArousalArea.CompareTo(Convert.ToDouble(settings.AppSettings.Settings["MinAverageArousalArea"].Value)) <= 0)
             {
-                calibrationMinArousalArea = scrArousalArea;
+                settings.AppSettings.Settings["MinAverageArousalArea"].Value = scrArousalArea.ToString();
                 return 1;
             }
 
-            if(scrArousalArea.CompareTo(calibrationMaxArousalArea) >= 0)
+            if(scrArousalArea.CompareTo(Convert.ToDouble(settings.AppSettings.Settings["MaxAverageArousalArea"].Value)) >= 0)
             {
-                calibrationMaxArousalArea = scrArousalArea;
+                settings.AppSettings.Settings["MaxAverageArousalArea"].Value = scrArousalArea.ToString();
                 return arousalLevel;
             }
 
-            double step = (arousalLevel != 0) ?(calibrationMaxArousalArea - calibrationMinArousalArea) / arousalLevel : 0.0;
-            return (step.CompareTo(0.0) != 0) ? (int)Math.Ceiling((scrArousalArea - calibrationMinArousalArea) / step) : 0;
+            settings.Save(ConfigurationSaveMode.Modified);
+            ConfigurationManager.RefreshSection("appSettings");
+
+            double step = (arousalLevel != 0) ?(GetAppValue("MaxAverageArousalArea") - GetAppValue("MinAverageArousalArea")) / arousalLevel : 0.0;
+            return (step.CompareTo(0.0) != 0) ? (int)Math.Ceiling((scrArousalArea - GetAppValue("MinAverageArousalArea")) / step) : 0;
         }
 
         public TonicStatistics GetTonicStatistics(Dictionary<double, double> tonicCoordinates)
@@ -333,7 +345,7 @@ namespace Assets.Rage.GSRAsset
             decimal mean = (allMaximums != null && allMaximums.Count > 0) ? Convert.ToDecimal(sumMaximums / allMaximums.Count) : 0;
 
             result.StdDeviation = GetStandardDeviation(allMaximums, mean);
-            result.SCLAchievedArousalLevel = GetTonicLevel(result.MeanAmp);
+            //result.SCLAchievedArousalLevel = GetTonicLevel(result.MeanAmp);
 
             SetMinMaxTonicAmplitude(result.MinAmp, result.MaxAmp);
 
@@ -342,20 +354,40 @@ namespace Assets.Rage.GSRAsset
 
         private void SetMinMaxTonicAmplitude(double minAmp, double maxAmp)
         {
-            if (minTonicAmplitude == null) minTonicAmplitude = minAmp;
-            if (minAmp.CompareTo(minTonicAmplitude) < 0)
+            if (Convert.ToDouble(GetAppValue("MinTonicAmplitude")).CompareTo(100) == 0)
             {
-                minTonicAmplitude = minAmp;
+                settings.AppSettings.Settings["MinTonicAmplitude"].Value = minAmp.ToString();
+            }
+            else if (minAmp.CompareTo(Convert.ToDouble(GetAppValue("MinTonicAmplitude"))) < 0)
+            {
+                settings.AppSettings.Settings["MinTonicAmplitude"].Value = minAmp.ToString();
             }
 
-            if (maxTonicAmplitude == null) maxTonicAmplitude = maxAmp;
-            if (maxAmp.CompareTo(maxTonicAmplitude) > 0)
+            if (Convert.ToDouble(GetAppValue("MaxTonicAmplitude")).CompareTo(-100) == 0)
             {
-                maxTonicAmplitude = maxAmp;
+                settings.AppSettings.Settings["MaxTonicAmplitude"].Value = maxAmp.ToString();
             }
+            else if (maxAmp.CompareTo(Convert.ToDouble(GetAppValue("MaxTonicAmplitude"))) > 0)
+            {
+                settings.AppSettings.Settings["MaxTonicAmplitude"].Value = maxAmp.ToString();
+            }
+
+            settings.Save(ConfigurationSaveMode.Modified);
+            ConfigurationManager.RefreshSection("appSettings"); ;
         }
 
-        private double GetArousalArea(Dictionary<double, double> coordinates, int numberOfAffectedPoints)
+        private double GetMovingAverage(Dictionary<double, double> coordinates, int numberOfAffectedPoints)
+        {
+            double movingAverage = 0;
+            for (int i = (coordinates.Count - numberOfAffectedPoints); i < (coordinates.Count - 1); i++)
+            {
+                movingAverage += Math.Abs(coordinates.ElementAt(i).Value);
+            }
+
+            return (movingAverage / numberOfAffectedPoints);
+        }
+
+        private double GetArousalArea(Dictionary<double, double> coordinates, int numberOfAffectedPoints, double timeWindow)
         {
             /*
             * For each one point P1 we take the next one P2 and
@@ -369,12 +401,14 @@ namespace Assets.Rage.GSRAsset
             double area = 0;
             for(int i = (coordinates.Count - numberOfAffectedPoints); i < (coordinates.Count - 1); i++)
             {
+                
                 if (i < (coordinates.Count - 2))
                 {
                     double x1 = coordinates.ElementAt(i).Key;
                     double y1 = coordinates.ElementAt(i).Value;
                     double x2 = coordinates.ElementAt(i + 1).Key;
                     double y2 = coordinates.ElementAt(i + 1).Value;
+
                     if ( y1*y2 >= 0 )
                     {
                         area += (Math.Abs(y1) + Math.Abs(y2)) * (x2 - x1) / 2;
@@ -391,10 +425,10 @@ namespace Assets.Rage.GSRAsset
                 }
             }
             
-            return area;
+            return (area / timeWindow);
         }
 
-        public ArousalStatistics GetArousalInfoForInflectionPoints(List<InflectionPoint> inflectionPoints)
+        public ArousalStatistics GetArousalInfoForInflectionPoints(List<InflectionPoint> inflectionPoints, double timeWindow)
         {
             InflectionLine inflectionLinesHandler = new InflectionLine();
 
@@ -409,7 +443,6 @@ namespace Assets.Rage.GSRAsset
             double sumRises = 0;
             double sumRecoveryTime = 0;
 
-            //Logger.Log("Start...");
             for (int i = 0; i < (inflectionPoints.Count - 1); i++)
             {
                 double x0 = (i > 0) ? inflectionPoints.ElementAt(i - 1).CoordinateX : inflectionPoints.ElementAt(0).CoordinateX;
@@ -462,47 +495,20 @@ namespace Assets.Rage.GSRAsset
                         sumRecoveryTime += currentRecouvery;
                     }
                 }
-                //Logger.Log("infl. point: x1=" + x1 + ", y1=" + y1 + ", x2=" + x2 + ", y2=" + y2);
-                //Logger.Log("Line length: " + inflectionLinesHandler.GetLineLength(x1, y1, x2, y2));
-
-                if (inflectionLinesHandler.GetDirection(x1, y1, x2, y2).Equals(InflectionLineDirection.Positive))
-                {
-                    //Logger.Log("Positive SummaryArousal: " + arousalProgress.SummaryArousal);
-                    arousalStat.NumberPositiveInflectionPoints++;
-                    arousalStat.SummaryArousal += inflectionLinesHandler.GetLineLength(x1, y1, x2, y2);
-                    //Logger.Log("Positive SummaryArousal2: " + arousalProgress.SummaryArousal);
-                }
-                else if (inflectionLinesHandler.GetDirection(x1, y1, x2, y2).Equals(InflectionLineDirection.Negative))
-                {
-                    //Logger.Log("Negative SummaryArousal: " + arousalProgress.SummaryArousal);
-                    arousalStat.NumberNegativeInflectionPoints++;
-                    arousalStat.SummaryArousal -= inflectionLinesHandler.GetLineLength(x1, y1, x2, y2);
-                    //Logger.Log("Negative SummaryArousal2: " + arousalProgress.SummaryArousal);
-                }
-                else if (inflectionLinesHandler.GetDirection(x1, y1, x2, y2).Equals(InflectionLineDirection.Neutral))
-                {
-                    //Logger.Log("Negative SummaryArousal: " + arousalProgress.SummaryArousal);
-                    arousalStat.NumberOfNeutralInflectionPoints++;
-                    arousalStat.SummaryArousal -= inflectionLinesHandler.GetLineLength(x1, y1, x2, y2);
-                    //Logger.Log("Negative SummaryArousal2: " + arousalProgress.SummaryArousal);
-                }
             }
 
-            arousalStat.NumberInflectionPoints = arousalStat.NumberPositiveInflectionPoints + 
-                                                     arousalStat.NumberNegativeInflectionPoints + 
-                                                     arousalStat.NumberOfNeutralInflectionPoints;
             scrAmplitude.Mean = (allMaximums != null && allMaximums.Count > 0) ? Convert.ToDecimal(sumMaximums / allMaximums.Count) : 0;
-            scrAmplitude.Count = allMaximums.Count;
+            scrAmplitude.Count = allMaximums.Count / timeWindow ;
             scrAmplitude.StdDeviation = GetStandardDeviation(allMaximums, scrAmplitude.Mean);
             arousalStat.SCRAmplitude = scrAmplitude;
 
             scrRise.Mean = (allRises != null && allRises.Count > 0) ? Convert.ToDecimal(sumRises / allRises.Count) : 0;
-            scrRise.Count = allRises.Count;
+            scrRise.Count = allRises.Count / timeWindow ;
             scrRise.StdDeviation = GetStandardDeviation(allRises, scrRise.Mean);
             arousalStat.SCRRise = scrRise;
 
             scrRecovery.Mean = (allRecoveryTimes != null && allRecoveryTimes.Count > 0) ? Convert.ToDecimal(sumRecoveryTime / allRecoveryTimes.Count) : 0;
-            scrRecovery.Count = allRecoveryTimes.Count;
+            scrRecovery.Count = allRecoveryTimes.Count / timeWindow ;
             scrRise.StdDeviation = GetStandardDeviation(allRecoveryTimes, scrRecovery.Mean);
             arousalStat.SCRRecoveryTime = scrRecovery;
             
@@ -530,21 +536,6 @@ namespace Assets.Rage.GSRAsset
             }
 
             return (allMaximums.Count > 0) ? Convert.ToDecimal(Math.Sqrt(stdDeviation / allMaximums.Count)) : 0;
-        }
-
-        public static void Log(object logMessage)
-        {
-            String currentDate = DateTime.Now.ToString("yyyyMMdd");
-            String logFileName = ConfigurationManager.AppSettings.Get("LogFile").Replace(".txt", currentDate + ".txt");
-            using (StreamWriter w = File.AppendText(logFileName))
-            {
-                logMessage = logMessage.ToString();
-                w.Write("\r\nLog Entry : ");
-                w.Write("{0} {1}", DateTime.Now.ToLongTimeString(),
-                    DateTime.Now.ToLongDateString());
-                w.WriteLine("  :{0}", logMessage);
-                w.WriteLine("-------------------------------");
-            }
         }
 
         public List<InflectionPoint> AffectedCoordinatePoints(Dictionary<double, double> coordinates, int numberOfAffectedPoints)
@@ -614,7 +605,7 @@ namespace Assets.Rage.GSRAsset
             JavaScriptSerializer js = new JavaScriptSerializer();
             string json = js.Serialize(statisticObject);
 
-            Log("jsonObject: " + json);
+            Logger.Log("jsonObject: " + json);
 
             return json;
         }
@@ -655,13 +646,17 @@ namespace Assets.Rage.GSRAsset
                 timeMeasure = TimeWindowMeasure.Seconds;
             }
 
+            medianFilterCoordinates = medianFilterCoordinates.OrderBy(key => key.Key).ToDictionary((keyItem) => keyItem.Key, (valueItem) => valueItem.Value);
             butterworthFilterCoordinates = GetButterworthHighLowPassCoordinates(sampleRate, medianFilterCoordinates);
             lowPassFilterCoordinates = butterworthFilterCoordinates.LowPassCoordinates;
             highPassFilterCoordinates = butterworthFilterCoordinates.HighPassCoordinates;
 
             ArousalStatistics butterworthStatistics = GetInflectionPoints(highPassFilterCoordinates, sampleRate, timeWindow, timeMeasure);
-            if (butterworthStatistics != null) butterworthStatistics.TonicStatistics = GetTonicStatistics(lowPassFilterCoordinates);
-
+            if (butterworthStatistics != null)
+            {
+                butterworthStatistics.TonicStatistics = GetTonicStatistics(lowPassFilterCoordinates);
+                butterworthStatistics.SCLAchievedArousalLevel = GetTonicLevel(butterworthStatistics.TonicStatistics.MeanAmp);
+            }
 
             return butterworthStatistics;
         }
@@ -725,55 +720,133 @@ namespace Assets.Rage.GSRAsset
         public string EndOfCalibrationPeriod()
         {
             ArousalStatistics statistics = GetArousalStatistics();
-            Log("Calibration data: " + GetJSONArousalStatistics(statistics));
-            double calibrationRatioSCR = statistics.SCRArousalArea / settings.MinAverageArousalArea;    
-            Log("calibrationRatioSCR: " + calibrationRatioSCR);
-            double calibrationRatioSCL = statistics.TonicStatistics.MinAmp / settings.MinAverageTonicAmplitude;
-            Log("calibrationRatioSCL: " + calibrationRatioSCL);
-            calibrationMinArousalArea = settings.MinAverageArousalArea * calibrationRatioSCR;
-            calibrationMinTonicAmplitude = settings.MinAverageTonicAmplitude * calibrationRatioSCL;
-            calibrationMaxArousalArea = settings.MaxAverageArousalArea * calibrationRatioSCR;
-            calibrationMaxTonicAmplitude = settings.MinAverageTonicAmplitude * calibrationRatioSCL;
-            Log("calibrationMinArousalArea: " + calibrationMinArousalArea);
-            Log("calibrationMinTonicAmplitude: " + calibrationMinTonicAmplitude);
-            Log("calibrationMaxArousalArea: " + calibrationMaxArousalArea);
-            Log("calibrationMaxTonicAmplitude: " + calibrationMaxTonicAmplitude);
+            Logger.Log("\n\n\n\n\n\n\n");
+            Logger.Log("Received message for end of calibration");
+            Logger.Log("MinAverageArousalArea: " + settings.AppSettings.Settings["MinAverageArousalArea"].Value);
+            Logger.Log("SCRArousalArea: " + statistics.SCRArousalArea);
+            double calibrationRatioSCR = Math.Round(Math.Abs(statistics.SCRArousalArea / Convert.ToDouble(
+                settings.AppSettings.Settings["MinAverageArousalArea"].Value)), 4) ;
+            double deltaSCL = Math.Round(statistics.TonicStatistics.MeanAmp - Convert.ToDouble(
+                settings.AppSettings.Settings["MinAverageTonicAmplitude"].Value), 4);
+            settings.AppSettings.Settings["CalibrationMinArousalArea"].Value = RoundString((Convert.ToDouble(
+                settings.AppSettings.Settings["MinAverageArousalArea"].Value) * calibrationRatioSCR).ToString());
+            settings.AppSettings.Settings["CalibrationMinTonicAmplitude"].Value = RoundString(statistics.TonicStatistics.MeanAmp.ToString());
+            settings.AppSettings.Settings["CalibrationMaxArousalArea"].Value = RoundString((Convert.ToDouble(
+                settings.AppSettings.Settings["MaxAverageArousalArea"].Value) * calibrationRatioSCR).ToString());
+            settings.AppSettings.Settings["CalibrationMaxTonicAmplitude"].Value = RoundString((Convert.ToDouble(
+                settings.AppSettings.Settings["MaxAverageTonicAmplitude"].Value) + deltaSCL).ToString());
+
+            settings.Save(ConfigurationSaveMode.Modified);
+            ConfigurationManager.RefreshSection("appSettings");
+
+            Logger.Log("Calibration data: " + GetJSONArousalStatistics(statistics));
+            Logger.Log("calibrationRatioSCR: " + calibrationRatioSCR);
+            Logger.Log("calibrationRatioSCL: " + deltaSCL);
+            Logger.Log("calibrationMinArousalArea: " + settings.AppSettings.Settings["CalibrationMinArousalArea"].Value);
+            Logger.Log("calibrationMinTonicAmplitude: " + settings.AppSettings.Settings["CalibrationMinTonicAmplitude"].Value);
+            Logger.Log("calibrationMaxArousalArea: " + settings.AppSettings.Settings["CalibrationMaxArousalArea"].Value);
+            Logger.Log("calibrationMaxTonicAmplitude: " + settings.AppSettings.Settings["CalibrationMaxTonicAmplitude"].Value);
+            Logger.Log("The calibration process was executed.");
 
             return "The calibration process was executed.";
         }
 
         public string EndOfMeasurement()
         {
-            Log("Start...");
-            Log("Old settings.NumberParticipants: " + settings.NumberParticipants);
-            Log("Old settings.MinAverageArousalArea: " + settings.MinAverageArousalArea);
-            Log("Old settings.MaxAverageArousalArea: " + settings.MaxAverageArousalArea);
-            Log("Old settings.MinAverageTonicAmplitude: " + settings.NumberParticipants);
-            Log("Old settings.MaxAverageTonicAmplitude: " + settings.NumberParticipants);
+            Logger.Log("Received message for end of measurement");
+            Logger.Log("Old settings.NumberParticipants: " + GetAppValue("NumberParticipants"));
+            Logger.Log("Old settings.MinAverageArousalArea: " + GetAppValue("MinAverageArousalArea"));
+            Logger.Log("Old settings.MaxAverageArousalArea: " + GetAppValue("MaxAverageArousalArea"));
+            Logger.Log("Old settings.MinAverageTonicAmplitude: " + GetAppValue("MinAverageTonicAmplitude"));
+            Logger.Log("Old settings.MaxAverageTonicAmplitude: " + GetAppValue("MaxAverageTonicAmplitude"));
 
-            int currentNumberParticipants = settings.NumberParticipants + 1;
-            int oldNumberParticipants = settings.NumberParticipants + 1;
-            if (minArousalArea != null && settings.MinAbsoluteArousalArea.CompareTo(minArousalArea) > 0) settings.MinAbsoluteArousalArea = minArousalArea.GetValueOrDefault();
-            if (maxArousalArea != null && settings.MaxAbsoluteArousalArea.CompareTo(maxArousalArea) < 0) settings.MaxAbsoluteArousalArea = maxArousalArea.GetValueOrDefault();
-            settings.MinAverageArousalArea = (settings.MinAverageArousalArea * oldNumberParticipants + minArousalArea.GetValueOrDefault()) / currentNumberParticipants;
-            settings.MaxAverageArousalArea = (settings.MaxAverageArousalArea * oldNumberParticipants + maxArousalArea.GetValueOrDefault()) / settings.MaxAverageArousalArea;
+            Logger.Log("NumberParticipants: " + GetAppValue("NumberParticipants"));
+            Logger.Log("minArousalArea: " + GetAppValue("MinArousalArea"));
+            Logger.Log("maxArousalArea: " + GetAppValue("MaxArousalArea"));
+            Logger.Log("minTonicAmplitude: " + GetAppValue("MinTonicAmplitude"));
+            Logger.Log("maxTonicAmplitude: " + GetAppValue("MaxTonicAmplitude"));
 
-            if (minTonicAmplitude != null && minTonicAmplitude.GetValueOrDefault().CompareTo(settings.MinAbsoluteTonicAmplitude) < 0) settings.MinAbsoluteTonicAmplitude = minTonicAmplitude.GetValueOrDefault();
-            if (maxTonicAmplitude != null && maxTonicAmplitude.GetValueOrDefault().CompareTo(settings.MaxAbsoluteTonicAmplitude) > 0) settings.MaxAbsoluteTonicAmplitude = maxTonicAmplitude.GetValueOrDefault();
-            settings.MinAverageTonicAmplitude = (settings.MinAverageTonicAmplitude * oldNumberParticipants + minArousalArea.GetValueOrDefault()) / currentNumberParticipants;
-            settings.MaxAverageTonicAmplitude = (settings.MaxAverageTonicAmplitude * oldNumberParticipants + maxTonicAmplitude.GetValueOrDefault()) / currentNumberParticipants;
+            int oldNumberParticipants = Convert.ToInt32(GetAppValue("NumberParticipants"));
+            int currentNumberParticipants = oldNumberParticipants + 1;
+            if (GetAppValue("MinAbsoluteArousalArea").CompareTo(GetAppValue("MinArousalArea")) > 0)
+            {
+                settings.AppSettings.Settings["MinAbsoluteArousalArea"].Value = RoundString(settings.AppSettings.Settings["MinArousalArea"].Value);
+            }
+            if (GetAppValue("MaxAbsoluteArousalArea").CompareTo(GetAppValue("MaxArousalArea")) < 0)
+            {
+                settings.AppSettings.Settings["MaxAbsoluteArousalArea"].Value = Math.Round(GetAppValue("MaxArousalArea"), 4).ToString();
+            }
+            settings.AppSettings.Settings["MinAverageArousalArea"].Value = RoundString(( (
+                GetAppValue("MinAverageArousalArea") * oldNumberParticipants + 
+                GetAppValue("MinArousalArea") ) / currentNumberParticipants ).ToString());
+            settings.AppSettings.Settings["MaxAverageArousalArea"].Value = RoundString(
+               ( ( GetAppValue("MaxAverageArousalArea") * oldNumberParticipants + 
+                GetAppValue("MaxArousalArea") ) / currentNumberParticipants).ToString());
 
-            settings.NumberParticipants = currentNumberParticipants;
+            if (GetAppValue("MinTonicAmplitude").CompareTo(GetAppValue("MinAbsoluteTonicAmplitude")) < 0)
+            {
+                settings.AppSettings.Settings["MinAbsoluteTonicAmplitude"].Value = Math.Round(GetAppValue("MinTonicAmplitude"), 4).ToString();
+            }
+            if (GetAppValue("MaxTonicAmplitude").CompareTo(GetAppValue("MaxAbsoluteTonicAmplitude")) > 0)
+            {
+                settings.AppSettings.Settings["MaxAbsoluteTonicAmplitude"].Value = Math.Round(GetAppValue("MaxTonicAmplitude"), 4).ToString();
+            }
+            settings.AppSettings.Settings["MinAverageTonicAmplitude"].Value = 
+                ( (GetAppValue("MinAverageTonicAmplitude") * oldNumberParticipants + 
+                GetAppValue("MinTonicAmplitude")) / currentNumberParticipants).ToString();
+            settings.AppSettings.Settings["MaxAverageTonicAmplitude"].Value = RoundString( ( (
+                GetAppValue("MaxAverageTonicAmplitude") * oldNumberParticipants +
+                GetAppValue("MaxTonicAmplitude")) / currentNumberParticipants).ToString());
 
-            settings.Save();
+            settings.AppSettings.Settings["NumberParticipants"].Value = currentNumberParticipants.ToString();
 
-            Log("New settings.NumberParticipants: " + settings.NumberParticipants);
-            Log("New settings.MinAverageArousalArea: " + settings.MinAverageArousalArea);
-            Log("New settings.MaxAverageArousalArea: " + settings.MaxAverageArousalArea);
-            Log("New settings.MinAverageTonicAmplitude: " + settings.NumberParticipants);
-            Log("New settings.MaxAverageTonicAmplitude: " + settings.NumberParticipants);
-            Log("End...");
+            settings.Save(ConfigurationSaveMode.Modified);
+            ConfigurationManager.RefreshSection("appSettings");
+
+            //re-initialize min/max for arousal area and tonic amplitude
+            settings.AppSettings.Settings["MaxArousalArea"].Value = "-1";
+            settings.AppSettings.Settings["MinArousalArea"].Value = "-1";
+            settings.AppSettings.Settings["MinTonicAmplitude"].Value = "100";
+            settings.AppSettings.Settings["MaxTonicAmplitude"].Value = "-100";
+
+            settings.Save(ConfigurationSaveMode.Modified);
+            ConfigurationManager.RefreshSection("appSettings");
+
+            Logger.Log("New settings.NumberParticipants: " + GetAppValue("NumberParticipants"));
+            Logger.Log("New settings.MinAverageArousalArea: " + GetAppValue("MinAverageArousalArea"));
+            Logger.Log("New settings.MaxAverageArousalArea: " + GetAppValue("MaxAverageArousalArea"));
+            Logger.Log("New settings.MinAverageTonicAmplitude: " + GetAppValue("MinAverageTonicAmplitude"));
+            Logger.Log("New settings.MaxAverageTonicAmplitude: " + GetAppValue("MaxAverageTonicAmplitude"));
+            Logger.Log("End...");
+
             return "The measurement process was ended.";
+        }
+
+        private string RoundString(string value)
+        {
+            return Math.Round(Convert.ToDouble(value), 4).ToString();
+        }
+
+        private double GetAppValue(string value)
+        {
+            return Convert.ToDouble(settings.AppSettings.Settings[value].Value);
+        }
+
+        public void InitializeMinMaxValues()
+        {
+
+            settings.AppSettings.Settings["MinAbsoluteArousalArea"].Value = "800";
+            settings.AppSettings.Settings["MaxAbsoluteArousalArea"].Value = "4000";
+            settings.AppSettings.Settings["MinAverageArousalArea"].Value = "700";
+            settings.AppSettings.Settings["MaxAverageArousalArea"].Value = "4000";
+            settings.AppSettings.Settings["MinAbsoluteTonicAmplitude"].Value = "-0.05";
+            settings.AppSettings.Settings["MaxAbsoluteTonicAmplitude"].Value = "3.12";
+            settings.AppSettings.Settings["MinAverageTonicAmplitude"].Value = "-0.05";
+            settings.AppSettings.Settings["MaxAverageTonicAmplitude"].Value = "3.12";
+            settings.AppSettings.Settings["NumberParticipants"].Value = "1";
+
+            settings.Save(ConfigurationSaveMode.Modified);
+            ConfigurationManager.RefreshSection("appSettings");
         }
     }
 }

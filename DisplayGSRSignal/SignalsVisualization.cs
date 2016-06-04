@@ -1,13 +1,11 @@
-﻿using AssetPackage;
-using Assets.Rage.GSRAsset;
+﻿using Assets.Rage.GSRAsset;
 using SignalDevice;
 using SocketServer.Socket;
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Drawing;
-using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
 
@@ -19,10 +17,17 @@ namespace DisplayGSRSignal
         GSRSignalProcessor gsrHandler = new GSRSignalProcessor();
         private SocketListener socketListener = new SocketListener();
 
+        private System.Windows.Forms.Timer WorkingPeriodTimer;
+        private System.Windows.Forms.Timer PausePeriodTimer;
+
         private string medianLineName = "De-noised filter";
         private string butterworthLowPassLine = "Tonic line";
         private string butterworthHighPassLine = "Phasic line";
         private double butterworthTonicPhasicFrequency = 0.05;
+
+        int workPeriod;
+        int pausePeriod;
+
         //bsAsset will provide common methods
         //BaseAsset bsAsset = new BaseAsset();
 
@@ -33,27 +38,37 @@ namespace DisplayGSRSignal
             signalController.SelectCOMPort("COM3");
             signalController.OpenPort();
             //signalController.SetSignalSamplerate();
-            signalController.StartSignalsRecord();
+            //signalController.StartSignalsRecord();
+
+            workPeriod = 4 * 1000;
+            pausePeriod = 1 * 1000;
+
+            this.WorkingPeriodTimer = new System.Windows.Forms.Timer(this.components);
+            WorkingPeriodTimer.Tick += pause_Working_Event;
+            WorkingPeriodTimer.Interval = workPeriod;
+
+            this.PausePeriodTimer = new System.Windows.Forms.Timer(this.components);
+            PausePeriodTimer.Tick += start_working_Event;
+            PausePeriodTimer.Interval = pausePeriod;
+
+            WorkingPeriodTimer.Start();
 
             if (DoesChartDisplay()) GSRChartDisplay();
             timer1.Tick += timer1_Tick;
         }
 
+
         private static bool DoesChartDisplay()
         {
-            //return true;// Cache.GetAllForChannel(0) != null && Cache.GetAllForChannel(0).Count > 0;
+            //return false;// Cache.GetAllForChannel(0) != null && Cache.GetAllForChannel(0).Count > 0;
             return Cache.GetAllForChannel(0) != null && Cache.GetAllForChannel(0).Count > 0;
         }
 
         //Handle click on the Refresh button
         private void refresh_Click(object sender, EventArgs e)
         {
-            //signalController.SelectCOMPort("COM3");
-            signalController.OpenPort();
-            //signalController.SetSignalSamplerate();
-            signalController.StartSignalsRecord();
-            //Log("start1: " + (DateTime.Now - DateTime.MinValue).TotalMilliseconds);
-
+            //RecordPauseDeviceSignal();
+            
             timer1.Start();
             if (DoesChartDisplay())  GSRChartDisplay();
         }
@@ -63,17 +78,17 @@ namespace DisplayGSRSignal
             int p = Cache.GetAllForChannel(0) != null ? Cache.GetAllForChannel(0).Count : 0;
 
             ChartClean();
-            
+
             ChartArea chart = gsrChart.ChartAreas[0];
             ChartArea filterChart = butterworthChart.ChartAreas[0];
             int sampleRate = signalController.GetSignalSampleRate();
 
-            //Log("start2: " + (DateTime.Now - DateTime.MinValue).TotalMilliseconds);
+            //Logger.Log("start2: " + (DateTime.Now - DateTime.MinValue).TotalMilliseconds);
             Dictionary<int, List<double>> channelsValues = gsrHandler.ExtractChannelsValues();
-            //Log("channelsValues: " + channelsValues.ElementAt(0).Value.Count);
+            //Logger.Log("channelsValues: " + channelsValues.ElementAt(0).Value.Count);
             //Dictionary<int, List<double>> channelsValues = gsrHandler.ExtractChannelsValuesFromFile();
             gsrHandler.FillCoordinates(sampleRate);
-            //Log("count: " + gsrHandler.coordinates.Count);
+            //Logger.Log("count: " + gsrHandler.coordinates.Count);
             Dictionary<int, Dictionary<double, double>> medianFilterCoordinates = gsrHandler.GetMedianFilterPoints(gsrHandler.coordinates);
             FilterButterworth highPassFilter = new FilterButterworth(butterworthTonicPhasicFrequency, sampleRate, ButterworthPassType.Highpass);
             FilterButterworth lowPassFilter = new FilterButterworth(butterworthTonicPhasicFrequency, sampleRate, ButterworthPassType.Lowpass);
@@ -86,6 +101,9 @@ namespace DisplayGSRSignal
             double yFilterMaxValue = 0.0;
             double yFilterMinValue = 0.0;
 
+            // Adjust Y & X axis scale
+            gsrChart.ResetAutoValues();
+
             int numPoints = 0;
             foreach (KeyValuePair<int, Dictionary<double, double>> channelCoordinates in gsrHandler.coordinates)
             {
@@ -97,10 +115,11 @@ namespace DisplayGSRSignal
                 }
 
                 numPoints = channelsValues.Values.Count;
-                foreach (KeyValuePair<double, double> coordinate in channelCoordinates.Value)
+                Dictionary<double, double> coordinatesValues = SortDictionaryByKey(channelCoordinates.Value);
+                foreach (KeyValuePair<double, double> coordinate in coordinatesValues)
                 {
-                    SetMinMax(ref xMaxValue, ref xMinValue, coordinate.Key);
-                    SetMinMax(ref yMaxValue, ref yMinValue, coordinate.Value);
+                    SetMinMax(ref xMaxValue, ref xMinValue, coordinate.Key, null, null);
+                    SetMinMax(ref yMaxValue, ref yMinValue, coordinate.Value, MinYTxtBox.Text, MaxYTxtBox.Text);
 
                     gsrChart.Series[currentChannel].Points.AddXY(coordinate.Key, coordinate.Value);
                 }
@@ -116,8 +135,8 @@ namespace DisplayGSRSignal
                         double highPassValue = highPassFilter.GetFilterValue(medianValue);
                         double lowPassValue = lowPassFilter.GetFilterValue(medianValue);
 
-                        SetMinMax(ref yFilterMaxValue, ref yFilterMinValue, highPassValue);
-                        SetMinMax(ref yFilterMaxValue, ref yFilterMinValue, lowPassValue);
+                        SetMinMax(ref yFilterMaxValue, ref yFilterMinValue, highPassValue, null, null);
+                        SetMinMax(ref yFilterMaxValue, ref yFilterMinValue, lowPassValue, MinYFltTxtBox.Text, MaxYFltTxtBox.Text);
 
                         gsrChart.Series[medianLineName].Points.AddXY(medianCoordinate.Key, medianValue);
                         butterworthChart.Series[butterworthLowPassLine].Points.AddXY(medianCoordinate.Key, lowPassValue);
@@ -135,19 +154,68 @@ namespace DisplayGSRSignal
             JavaScriptSerializer js = new JavaScriptSerializer();
             string json = js.Serialize(butterworthStatistics);
 
-            Log("jsonObject: " + json);
+            Logger.Log("jsonObject: " + json);
 
             ArousalInfoButterworth.Text = (butterworthStatistics != null) ? butterworthStatistics.ToString("Phasic line") : "";
             */
 
-            if(gsrHandler.coordinates.Count > 5) gsrChart.DataManipulator.FinancialFormula(FinancialFormula.ExponentialMovingAverage, "5", "GSR 1:Y", "Moving Average:Y");
+            //remove old points
+            //RemoveOldPoints(2500);
+
+            if (gsrHandler.coordinates.Count > 5) gsrChart.DataManipulator.FinancialFormula(FinancialFormula.ExponentialMovingAverage, "5", "GSR 1:Y", "Moving Average:Y");
 
             //if(number == 1)
             //{
-                SetChartDetail(chart, xMaxValue, xMinValue, yMaxValue, yMinValue);
-                SetChartDetail(filterChart, xMaxValue, xMinValue, yFilterMaxValue, yFilterMinValue);
-           // }
+            SetChartDetail(chart, xMaxValue, xMinValue, yMaxValue, yMinValue);
+            SetChartDetail(filterChart, xMaxValue, xMinValue, yFilterMaxValue, yFilterMinValue);
+            // }
 
+            //gsrChart.Invalidate();
+            //butterworthChart.Invalidate();
+        }
+
+        private static Dictionary<double, double> SortDictionaryByKey(Dictionary<double, double> dictionary)
+        {
+            return dictionary.OrderBy(key => key.Key).ToDictionary((keyItem) => keyItem.Key, (valueItem) => valueItem.Value);
+        }
+
+        private void RemoveOldPoints(int maxNumberOfPoints)
+        {
+            if (gsrChart.Series[0].Points.Count > maxNumberOfPoints)
+            {
+                int exceedPoints = gsrChart.Series[0].Points.Count - maxNumberOfPoints;
+                for (int i = 0; i < exceedPoints; i++)
+                {
+                    gsrChart.Series[0].Points.RemoveAt(0);
+                }
+            }
+
+            if(butterworthChart.Series[butterworthHighPassLine].Points.Count > maxNumberOfPoints)
+            {
+                int exceedPoints = butterworthChart.Series[butterworthHighPassLine].Points.Count - maxNumberOfPoints;
+                for (int i = 0; i < exceedPoints; i++)
+                {
+                    butterworthChart.Series[butterworthHighPassLine].Points.RemoveAt(0);
+                }
+            }
+
+            if(butterworthChart.Series[butterworthLowPassLine].Points.Count > maxNumberOfPoints)
+            {
+                int exceedPoints = butterworthChart.Series[butterworthLowPassLine].Points.Count - maxNumberOfPoints;
+                for (int i = 0; i < exceedPoints; i++)
+                {
+                    butterworthChart.Series[butterworthLowPassLine].Points.RemoveAt(0);
+                }
+            }
+
+            if(gsrChart.Series[medianLineName].Points.Count > maxNumberOfPoints)
+            {
+                int exceedPoints = gsrChart.Series[medianLineName].Points.Count - maxNumberOfPoints;
+                for (int i = 0; i < exceedPoints; i++)
+                {
+                    gsrChart.Series[medianLineName].Points.RemoveAt(0);
+                }
+            }
         }
 
         private ArousalStatistics GetInflectionPoints(Chart chart, DataPointCollection chartAreaPoints, String seriesName, bool flagMarked)
@@ -199,9 +267,14 @@ namespace DisplayGSRSignal
             chartPoints[i].MarkerSize = 5;            
         }
 
-        private static void SetMinMax(ref double xMaxValue, ref double xMinValue, double coordinateKeyValue)
+        private static void SetMinMax(ref double xMaxValue, ref double xMinValue, double coordinateKeyValue, String requiredMin, String requiredMax)
         {
-            if (xMaxValue.Equals(0.0) && xMinValue.Equals(0.0))
+            if(!String.IsNullOrEmpty(requiredMin) && !String.IsNullOrEmpty(requiredMax))
+            {
+                xMinValue = Convert.ToDouble(requiredMin);
+                xMaxValue = Convert.ToDouble(requiredMax);
+            }
+            else if (xMaxValue.Equals(0.0) && xMinValue.Equals(0.0))
             {
                 xMaxValue = coordinateKeyValue;
                 xMinValue = coordinateKeyValue;
@@ -277,35 +350,36 @@ namespace DisplayGSRSignal
             }
         }
 
-        public static void Log(object logMessage)
-        {
-            String currentDate = DateTime.Now.ToString("yyyyMMdd");
-            String logFileName = ConfigurationManager.AppSettings.Get("LogFile").Replace(".txt", currentDate + ".txt");
-            using (StreamWriter w = File.AppendText(logFileName))
-            {
-                logMessage = logMessage.ToString();
-                w.Write("\r\nLog Entry : ");
-                w.Write("{0} {1}", DateTime.Now.ToLongTimeString(),
-                    DateTime.Now.ToLongDateString());
-                w.WriteLine("  :{0}", logMessage);
-                w.WriteLine("-------------------------------");
-            }
-        }
-
         private void timer1_Tick(object sender, EventArgs e)
         {
             if(DoesChartDisplay()) GSRChartDisplay();
         }
 
+        private void pause_Working_Event(object sender, EventArgs e)
+        {
+            PausePeriodTimer.Start();
+            WorkingPeriodTimer.Stop();
+            signalController.StopSignalsRecord();
+        }
+
+        private void start_working_Event(object sender, EventArgs e)
+        {
+            WorkingPeriodTimer.Start();
+            PausePeriodTimer.Stop();
+            signalController.SelectCOMPort("COM3");
+            //signalController.OpenPort();
+            signalController.StartSignalsRecord();
+        }
+
         //Handle click on the Stop button
         private void stop_Click(object sender, EventArgs e)
         {
-            signalController.StopSignalsRecord();
+            //signalController.StopSignalsRecord();
 
             //GSRSignalProcessor gsrHandler = new GSRSignalProcessor();
             
-            ArousalStatistics gsrArousalStatistics = GetInflectionPoints(gsrChart, gsrChart.Series[medianLineName].Points, medianLineName, true);
-            ArousalInfo.Text = (gsrArousalStatistics != null) ? gsrArousalStatistics.ToString("De-noised filter") : "";
+            //ArousalStatistics gsrArousalStatistics = GetInflectionPoints(gsrChart, gsrChart.Series[medianLineName].Points, medianLineName, true);
+            //ArousalInfo.Text = (gsrArousalStatistics != null) ? gsrArousalStatistics.ToString("De-noised filter") : "";
             /*
             ArousalStatistics butterworthStatistics = GetInflectionPoints(butterworthChart, butterworthChart.Series[butterworthHighPassLine].Points, butterworthHighPassLine, true);
             if (butterworthStatistics != null) butterworthStatistics.TonicStatistics = gsrHandler.GetTonicStatistics(TransformToDictionary(butterworthChart.Series[butterworthLowPassLine].Points));
@@ -318,7 +392,7 @@ namespace DisplayGSRSignal
             //ArousalInfoButterworth.Text = (butterworthStatistics != null) ? butterworthStatistics.ToString("Phasic line") : "";
 
             //gsrHandler.EndMeasurment();
-            timer1.Stop();
+            //timer1.Stop();
         }
 
         
@@ -329,6 +403,7 @@ namespace DisplayGSRSignal
             {
                 gsrChart.ChartAreas[0].AxisY.Minimum = newYMin;
             }
+            //gsrChart.ChartAreas[0].AxisY.Minimum = newYMin;
         }
 
         private void MaxYBtn_Click(object sender, EventArgs e)
@@ -338,6 +413,7 @@ namespace DisplayGSRSignal
             {
                 gsrChart.ChartAreas[0].AxisY.Maximum = newYMax;
             }
+            //gsrChart.ChartAreas[0].AxisY.Maximum = newYMax;
         }
 
         Point? prevPosition = null;
@@ -433,7 +509,15 @@ namespace DisplayGSRSignal
 
         private void SignalVisualization_Closed(object sender, EventArgs e)
         {
-            socketListener.CloseSocket();
+            if (signalController != null)
+            {
+                signalController.StopSignalsRecord();
+            }
+
+            if (socketListener != null)
+            {
+                socketListener.CloseSocket();
+            }
         }
 
         private void btnStartSocket_Click(object sender, EventArgs e)

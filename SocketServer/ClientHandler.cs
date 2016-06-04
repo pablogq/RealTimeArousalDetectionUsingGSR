@@ -70,13 +70,15 @@ namespace SocketServer.Socket
                 response.Append("\r\n");
                 response.Append(data);
 
-                if(data.Equals("DoCalibration"))
+                //End Of Calibration Period
+                if (data.Equals("EOCP"))
                 {
                     response.Append("\r\n");
                     response.Append(gsrHandler.EndOfCalibrationPeriod());
                 }
 
-                if(data.Equals("GetEDA"))
+
+                if(data.Equals("GET_EDA"))
                 {
                     response.Append("\r\n");
                     string result = gsrHandler.GetJSONArousalStatistics(gsrHandler.GetArousalStatistics());
@@ -85,7 +87,8 @@ namespace SocketServer.Socket
                     //Logger.Log("Send answer: " + result);
                 }
 
-                if(data.Equals("EndOfMesuarement"))
+                //End Of Measurement
+                if (data.Equals("EOM"))
                 {
                     response.Append("\r\n");
                     response.Append(gsrHandler.EndOfMeasurement());
@@ -97,6 +100,13 @@ namespace SocketServer.Socket
 
                 // Client stop processing  
                 if (bQuit)
+                {
+                    networkStream.Close();
+                    ClientSocket.Close();
+                    ContinueProcess = false;
+                }
+
+                if (data.Equals("EOM"))
                 {
                     networkStream.Close();
                     ClientSocket.Close();

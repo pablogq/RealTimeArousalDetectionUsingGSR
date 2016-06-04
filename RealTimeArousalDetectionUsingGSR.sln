@@ -13,6 +13,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SignalDevice", "..\SignalDe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SocketServer", "SocketServer\SocketServer.csproj", "{CCC78075-D3BA-4BEF-B225-29080DE73F87}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReInitializeEDAValues", "ReInitializeEDAValues\ReInitializeEDAValues.csproj", "{AA690D74-E383-46F4-9FBE-69F7084E4121}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Logger", "Logger\Logger.csproj", "{BA4E5DC4-5690-4E45-B690-786DAC398E6A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +43,14 @@ Global
 		{CCC78075-D3BA-4BEF-B225-29080DE73F87}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CCC78075-D3BA-4BEF-B225-29080DE73F87}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CCC78075-D3BA-4BEF-B225-29080DE73F87}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AA690D74-E383-46F4-9FBE-69F7084E4121}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AA690D74-E383-46F4-9FBE-69F7084E4121}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AA690D74-E383-46F4-9FBE-69F7084E4121}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AA690D74-E383-46F4-9FBE-69F7084E4121}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BA4E5DC4-5690-4E45-B690-786DAC398E6A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA4E5DC4-5690-4E45-B690-786DAC398E6A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BA4E5DC4-5690-4E45-B690-786DAC398E6A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BA4E5DC4-5690-4E45-B690-786DAC398E6A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

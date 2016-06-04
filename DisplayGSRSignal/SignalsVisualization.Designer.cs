@@ -94,7 +94,7 @@ namespace DisplayGSRSignal
             series1.Name = "GSR 1";
             series1.XValueType = System.Windows.Forms.DataVisualization.Charting.ChartValueType.Double;
             series1.YValuesPerPoint = 20;
-            series1.YValueType = System.Windows.Forms.DataVisualization.Charting.ChartValueType.Int32;
+            series1.YValueType = System.Windows.Forms.DataVisualization.Charting.ChartValueType.Double;
             series2.BorderWidth = 2;
             series2.ChartArea = "ChartArea1";
             series2.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Spline;
@@ -111,7 +111,7 @@ namespace DisplayGSRSignal
             this.gsrChart.Series.Add(series2);
             this.gsrChart.Series.Add(series3);
             this.gsrChart.Size = new System.Drawing.Size(1511, 502);
-            this.gsrChart.TabIndex = 1;
+            this.gsrChart.TabIndex = 22;
             this.gsrChart.Text = "gsrChart";
             this.gsrChart.MouseClick += new System.Windows.Forms.MouseEventHandler(this.gsrChart_MouseClick);
             this.gsrChart.MouseMove += new System.Windows.Forms.MouseEventHandler(this.gsrChart_MouseMove);
@@ -222,7 +222,7 @@ namespace DisplayGSRSignal
             series5.Name = "Phasic line";
             this.butterworthChart.Series.Add(series4);
             this.butterworthChart.Series.Add(series5);
-            this.butterworthChart.Size = new System.Drawing.Size(1468, 266);
+            this.butterworthChart.Size = new System.Drawing.Size(1511, 502);
             this.butterworthChart.TabIndex = 22;
             this.butterworthChart.Text = "butterworthfilter";
             title1.ForeColor = System.Drawing.Color.DodgerBlue;
@@ -297,8 +297,8 @@ namespace DisplayGSRSignal
             // ArousalInfoButterworth
             // 
             this.ArousalInfoButterworth.AutoSize = true;
-            this.ArousalInfoButterworth.MaximumSize = new System.Drawing.Size(350, 0);
             this.ArousalInfoButterworth.Location = new System.Drawing.Point(1374, 638);
+            this.ArousalInfoButterworth.MaximumSize = new System.Drawing.Size(350, 0);
             this.ArousalInfoButterworth.Name = "ArousalInfoButterworth";
             this.ArousalInfoButterworth.Size = new System.Drawing.Size(0, 17);
             this.ArousalInfoButterworth.TabIndex = 30;

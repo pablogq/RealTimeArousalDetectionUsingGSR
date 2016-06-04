@@ -3,34 +3,61 @@
   <Profiles />
   <Settings>
     <Setting Name="MinAbsoluteArousalArea" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">200</Value>
+      <Value Profile="(Default)">700</Value>
     </Setting>
     <Setting Name="MinAverageArousalArea" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">200</Value>
+      <Value Profile="(Default)">700</Value>
     </Setting>
     <Setting Name="MaxAbsoluteArousalArea" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">1326</Value>
+      <Value Profile="(Default)">5000</Value>
     </Setting>
     <Setting Name="MaxAverageArousalArea" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">1326</Value>
+      <Value Profile="(Default)">5000</Value>
     </Setting>
     <Setting Name="MinAbsoluteTonicAmplitude" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">0.001</Value>
+      <Value Profile="(Default)">-0.05</Value>
     </Setting>
     <Setting Name="MinAverageTonicAmplitude" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">0.001</Value>
+      <Value Profile="(Default)">-0.05</Value>
     </Setting>
     <Setting Name="MaxAbsoluteTonicAmplitude" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">0.082</Value>
+      <Value Profile="(Default)">3.12</Value>
     </Setting>
     <Setting Name="MaxAverageTonicAmplitude" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">0.082</Value>
+      <Value Profile="(Default)">3.12</Value>
     </Setting>
     <Setting Name="NumberParticipants" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">1</Value>
     </Setting>
     <Setting Name="LogFile" Type="System.String" Scope="User">
       <Value Profile="(Default)">C:/Users/ddessy/log.txt</Value>
+    </Setting>
+    <Setting Name="CalibrationMinArousalArea" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">-1</Value>
+    </Setting>
+    <Setting Name="CalibrationMaxArousalArea" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">-1</Value>
+    </Setting>
+    <Setting Name="CalibrationMaxTonicAmplitude" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">-100</Value>
+    </Setting>
+    <Setting Name="MinArousalArea" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">-1</Value>
+    </Setting>
+    <Setting Name="MaxArousalArea" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">-1</Value>
+    </Setting>
+    <Setting Name="MinTonicAmplitude" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">100</Value>
+    </Setting>
+    <Setting Name="MaxTonicAmplitude" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">-100</Value>
+    </Setting>
+    <Setting Name="DefaultTimeWindow" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">8</Value>
+    </Setting>
+    <Setting Name="CalibrationMinTonicAmplitude" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">100</Value>
     </Setting>
   </Settings>
 </SettingsFile>

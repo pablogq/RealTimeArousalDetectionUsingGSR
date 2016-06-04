@@ -8,23 +8,30 @@ namespace Assets.Rage.GSRAsset
 {
     public class ArousalStatistics
     {
+        /*
         private int scrNumberOfInflectionPoints;
         private int scrNumberOfPositiveInflectionPoints;
         private int scrNumberOfNegativeInflectionPoints;
         private int scrNumberOfNeutralInflectionPoints;
+        
         private double summaryArousal;
+        */
+
         private double scrArousalArea;
         private double scrAchievedArousalLevel;
+        private double sclAchievedArousalLevel;
         private ArousalFeature scrAmplitude;
         private ArousalFeature scrRise;
         private ArousalFeature scrRecoveryTime;
         private TonicStatistics tonicStatistics;
+        private double movingAverage;
 
         public ArousalStatistics()
         {
             //super();
         }
 
+        /*
         public int NumberPositiveInflectionPoints
         {
             get
@@ -73,6 +80,7 @@ namespace Assets.Rage.GSRAsset
                 scrNumberOfNeutralInflectionPoints = value;
             }
         }
+        
 
         public int NumberInflectionPoints
         {
@@ -85,6 +93,7 @@ namespace Assets.Rage.GSRAsset
                 scrNumberOfInflectionPoints = value;
             }
         }
+        */
 
         public double SCRArousalArea
         {
@@ -159,17 +168,46 @@ namespace Assets.Rage.GSRAsset
             }
         }
 
+        public double SCLAchievedArousalLevel
+        {
+            get
+            {
+                return sclAchievedArousalLevel;
+            }
+
+            set
+            {
+                sclAchievedArousalLevel = value;
+            }
+        }
+
+        public double MovingAverage
+        {
+            get
+            {
+                return movingAverage;
+            }
+
+            set
+            {
+                movingAverage = value;
+            }
+        }
+
         public string ToString(String title)
         {
             StringBuilder str = new StringBuilder();
             str.Append("Arousal statistics for " + title + ": \n\n");
-            str.Append("Number of inflection points: " + scrNumberOfInflectionPoints + "\n");
-            str.Append("Number of positive inflection points: " + scrNumberOfPositiveInflectionPoints + "\n");
-            str.Append("Number of negative inflection points: " + scrNumberOfNegativeInflectionPoints + "\n");
-            str.Append("Number of neutral inflection points: " + scrNumberOfNeutralInflectionPoints + "\n");
+            //str.Append("Number of inflection points: " + scrNumberOfInflectionPoints + "\n");
+            //str.Append("Number of positive inflection points: " + scrNumberOfPositiveInflectionPoints + "\n");
+            //str.Append("Number of negative inflection points: " + scrNumberOfNegativeInflectionPoints + "\n");
+            //str.Append("Number of neutral inflection points: " + scrNumberOfNeutralInflectionPoints + "\n");
             //str.Append("Summary arousal: " + summaryArousal + "\n");
             str.Append("Arousal area: " + scrArousalArea + "\n");
+            str.Append("Moving average: " + movingAverage + "\n");
             str.Append(scrAmplitude.ToString());
+            //str.Append(scrRise.ToString());
+            //str.Append(scrRecoveryTime.ToString());
             str.Append("SCR arousal level: " + scrAchievedArousalLevel);
         
             return str.ToString();

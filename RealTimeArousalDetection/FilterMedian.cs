@@ -72,6 +72,8 @@ namespace Assets.Rage.GSRAsset
 
         private Dictionary<int, Dictionary<double, double>> extendSignalCoordinates(Dictionary<int, Dictionary<double, double>> signalCoordinates)
         {
+            if (signalCoordinates == null || signalCoordinates.Count == 0 || signalCoordinates.ElementAt(0).Value.Count < 2) return signalCoordinates;
+
             Dictionary<int, Dictionary<double, double>> result = new Dictionary<int, Dictionary<double, double>>();
             foreach (KeyValuePair<int, Dictionary<double, double>> channelCoordinates in signalCoordinates)
             {

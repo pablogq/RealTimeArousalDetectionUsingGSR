@@ -16,7 +16,8 @@ namespace RealTimeArousalDetection.Properties {
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
         
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
-        
+        internal double DefaultTimeWindow;
+
         public static Settings Default {
             get {
                 return defaultInstance;
@@ -25,7 +26,7 @@ namespace RealTimeArousalDetection.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("200")]
+        [global::System.Configuration.DefaultSettingValueAttribute("700")]
         public double MinAbsoluteArousalArea {
             get {
                 return ((double)(this["MinAbsoluteArousalArea"]));
@@ -37,7 +38,7 @@ namespace RealTimeArousalDetection.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("200")]
+        [global::System.Configuration.DefaultSettingValueAttribute("700")]
         public double MinAverageArousalArea {
             get {
                 return ((double)(this["MinAverageArousalArea"]));
@@ -49,7 +50,7 @@ namespace RealTimeArousalDetection.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("1326")]
+        [global::System.Configuration.DefaultSettingValueAttribute("4000")]
         public double MaxAbsoluteArousalArea {
             get {
                 return ((double)(this["MaxAbsoluteArousalArea"]));
@@ -61,7 +62,7 @@ namespace RealTimeArousalDetection.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("1326")]
+        [global::System.Configuration.DefaultSettingValueAttribute("4000")]
         public double MaxAverageArousalArea {
             get {
                 return ((double)(this["MaxAverageArousalArea"]));
@@ -73,7 +74,7 @@ namespace RealTimeArousalDetection.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0.001")]
+        [global::System.Configuration.DefaultSettingValueAttribute("-0.05")]
         public double MinAbsoluteTonicAmplitude {
             get {
                 return ((double)(this["MinAbsoluteTonicAmplitude"]));
@@ -85,7 +86,7 @@ namespace RealTimeArousalDetection.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0.001")]
+        [global::System.Configuration.DefaultSettingValueAttribute("-0.05")]
         public double MinAverageTonicAmplitude {
             get {
                 return ((double)(this["MinAverageTonicAmplitude"]));
@@ -97,7 +98,7 @@ namespace RealTimeArousalDetection.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0.082")]
+        [global::System.Configuration.DefaultSettingValueAttribute("3.12")]
         public double MaxAbsoluteTonicAmplitude {
             get {
                 return ((double)(this["MaxAbsoluteTonicAmplitude"]));
@@ -109,7 +110,7 @@ namespace RealTimeArousalDetection.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0.082")]
+        [global::System.Configuration.DefaultSettingValueAttribute("3.12")]
         public double MaxAverageTonicAmplitude {
             get {
                 return ((double)(this["MaxAverageTonicAmplitude"]));
@@ -140,6 +141,102 @@ namespace RealTimeArousalDetection.Properties {
             }
             set {
                 this["LogFile"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("-1")]
+        public double CalibrationMinArousalArea {
+            get {
+                return ((double)(this["CalibrationMinArousalArea"]));
+            }
+            set {
+                this["CalibrationMinArousalArea"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("-1")]
+        public double CalibrationMaxArousalArea {
+            get {
+                return ((double)(this["CalibrationMaxArousalArea"]));
+            }
+            set {
+                this["CalibrationMaxArousalArea"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("-100")]
+        public double CalibrationMinTonicAmplitude {
+            get {
+                return ((double)(this["CalibrationMinTonicAmplitude"]));
+            }
+            set {
+                this["CalibrationMinTonicAmplitude"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("-100")]
+        public double CalibrationMaxTonicAmplitude {
+            get {
+                return ((double)(this["CalibrationMaxTonicAmplitude"]));
+            }
+            set {
+                this["CalibrationMaxTonicAmplitude"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("-1")]
+        public double MinArousalArea {
+            get {
+                return ((double)(this["MinArousalArea"]));
+            }
+            set {
+                this["MinArousalArea"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("-1")]
+        public double MaxArousalArea {
+            get {
+                return ((double)(this["MaxArousalArea"]));
+            }
+            set {
+                this["MaxArousalArea"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("100")]
+        public double MinTonicAmplitude {
+            get {
+                return ((double)(this["MinTonicAmplitude"]));
+            }
+            set {
+                this["MinTonicAmplitude"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("-100")]
+        public double MaxTonicAmplitude {
+            get {
+                return ((double)(this["MaxTonicAmplitude"]));
+            }
+            set {
+                this["MaxTonicAmplitude"] = value;
             }
         }
     }

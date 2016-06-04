@@ -5,7 +5,7 @@ namespace SocketServer.Socket
 {
     class ClientService
     {
-        const int NUM_OF_THREAD = 10;
+        const int NUM_OF_THREAD = 15;
 
         private ClientConnectionPool ConnectionPool;
         private bool ContinueProcess = false;
@@ -44,6 +44,7 @@ namespace SocketServer.Socket
                                       // if client still connect, schedufor later processingle it 
                     if (client.Alive)
                         ConnectionPool.Enqueue(client);
+                    else client.Close();
                 }
 
                 Thread.Sleep(100);

@@ -10,7 +10,7 @@ namespace Assets.Rage.GSRAsset
         private double minAmp;
         private double maxAmp;
         private Decimal std;
-        private int sclAchievedArousalLevel;
+        //private int sclAchievedArousalLevel;
 
         public double Slope
         {
@@ -77,6 +77,7 @@ namespace Assets.Rage.GSRAsset
             }
         }
 
+        /*
         public int SCLAchievedArousalLevel
         {
             get
@@ -89,6 +90,7 @@ namespace Assets.Rage.GSRAsset
                 sclAchievedArousalLevel = value;
             }
         }
+        */
 
         public string ToString()
         {
@@ -99,7 +101,7 @@ namespace Assets.Rage.GSRAsset
             str.Append("Maximum value: " + maxAmp + "\n");
             str.Append("Mean value: " + meanAmp + "\n");
             str.Append("Standard deviation: " + std + "\n");
-            str.Append("Tonic level: " + sclAchievedArousalLevel + "\n");
+            //str.Append("Tonic level: " + sclAchievedArousalLevel + "\n");
 
             return str.ToString();
         }
