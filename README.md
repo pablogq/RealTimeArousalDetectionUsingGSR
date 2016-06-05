@@ -36,7 +36,7 @@ The asset can be used as library without graphical representation of the GSR sig
 - open project in your .Net IDE (Visual Studio, SharpDevelop, MonoDevelop, etc.);
 - check application settings in the project [DisplayGSRSignal](https://github.com/ddessy/RealTimeArousalDetectionUsingGSR/tree/master/RealTimeArousalDetectionUsingGSR/DisplayGSRSignal) and change if it is needed;
 - plug the GSR device;
-- build and run application.
+- build the solution and run DisplayGSRSignal.
 
 ###  Application settings
 
@@ -63,3 +63,11 @@ The application settings are following:
 - DefaultTimeWindow - default value for the time window;
 - SamplerateLabel - sample rate of the GSR device;
 - ArousalLevel - number of arousal levels.
+
+### Socket communication
+
+The measured and calculated from the asset emotional arousal status of the current gamer/user can be access by a socket client. For this purpose following messages are expected:
+
+- EOCP - this is the message for end of calibration period. After this message the calibration settings (CalibrationMinArousalArea, CalibrationMaxArousalArea, CalibrationMinTonicAmplitude and CalibrationMaxTonicAmplitude) are calculated (for tha last time window) and saved.
+- GET_EDA - when the asset receives "GET_EDA" it returns a json file with information for the emotional arousal level of the gamer/user (in the last time window);
+- EOM - this is the command for end of measurement for the current gamer/user. After this message the statistical values for the SCR and SCL arousal (MinAbsoluteArousalArea, MinAverageArousalArea, MaxAbsoluteArousalArea, MaxAverageArousalArea, MinAbsoluteTonicAmplitude, MinAverageTonicAmplitude, MaxAbsoluteTonicAmplitude, MaxAverageTonicAmplitude and NumberParticipants) are updated.
