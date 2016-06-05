@@ -126,4 +126,4 @@ The measured and calculated from the asset emotional arousal status of the curre
 
 ## Licensing
 
-No specific licensing is required.
+No specific licensing is required. However, the asset is dependent on usage of a custom EDA measuring device, although it could be redone for any other suitable EDA meter.
