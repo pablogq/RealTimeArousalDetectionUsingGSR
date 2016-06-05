@@ -81,7 +81,7 @@ The application settings are following:
 - int SetMaxArousalLevel(int level) – sets the max arousal level. Zero means no arousal at all and level means maximal level of arousal. The value of level should be greater than 0 and less than 10. The default value of the max arousal level is 7. It returns 0 in case of success.
 - double GetGSRFeature(string featureName) – returns the value (as double number) of a specific GSR feature (featureName can be equal to "SCRArousalArea", "SCRAchievedArousalLevel", "SCLAchievedArousalLevel" and "MovingAverage)". It returns -1 if the device is not started (active);
 - int StartSignalsRecord() - start the device;
--  int  StopSignalsRecord() – stops the device; all the buffers are flushed; returns -1 if the device is not stopped.
+-  int  StopSignalsRecord() – stops the device. All the buffers are flushed; returns -1 if the device is not stopped.
 
 ### Socket communication
 
