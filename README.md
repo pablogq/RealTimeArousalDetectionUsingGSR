@@ -3,7 +3,7 @@
 ## Overview
 
 Galvanic Skin Response (GSR), also referred to Electro-Dermal Activity (EDA), Skin Conductance Response (SCR), Psycho-Galvanic Reflex (PGR), or Skin Conductance Level (SCL), is related to the activity of the sweat glands, which are regulated by the sympathetic nervous system. When being open and functioning intensively, they emit water solution (sweat) which creates channels of higher conductivity toward the deeper skin layers. EDA represents the electrical conductivity of the skin, which is directly dependent on the activity of the sweat glands, and is often used to index the autonomic arousal. GSR offers a popular and affordable way for detection of player’s arousal in adaptive digital games and other affective computing applications.
-The asset produces real-time features of GSR signal measured from particular player such as: mean tonic activity level, phasic activity represented by mean and maximum amplitude of skin conductance response (all in micro-siemens), rate of phasic activity (response peaks/sec), SCR rise time, SCR 1/2 recovery time, and slope of tonic activity (in micro-siemens/sec). The level of arousal may be useful for emotion detection and for adaptation purposes, therefore the asset can be combined with the T2.3 Real-time Emotion Detection Asset and the T3.4 Player-centric rule- and pattern-based adaptation asset.
+The asset produces real-time features of GSR signal measured from particular player such as: mean tonic activity level, phasic activity represented by mean and maximum amplitude of skin conductance response (all in micro-siemens), rate of phasic activity (response peaks/sec), SCR rise time, SCR 1/2 recovery time, and slope of tonic activity (in micro-siemens/sec). The level of arousal may be useful for emotion detection and for adaptation purposes.
 The asset will receive a filtered raw signal from a simple, low cost biofeedback device allowing sampling rate up to 2Khz. Measurements are carried out with two electrodes placed on two adjacent fingers. Recording, filtering and feature extraction might be executed on a computer (server) different than the game machine, in order to speed up all the required processing. The results will be communicated from the server-side to the client component in order to be used for game adaptation.
 
 ## Asset architecture and input/output
@@ -71,3 +71,45 @@ The measured and calculated from the asset emotional arousal status of the curre
 - EOCP - this is the message for end of calibration period. After this message the calibration settings (CalibrationMinArousalArea, CalibrationMaxArousalArea, CalibrationMinTonicAmplitude and CalibrationMaxTonicAmplitude) are calculated (for tha last time window) and saved.
 - GET_EDA - when the asset receives "GET_EDA" it returns a json file with information for the emotional arousal level of the gamer/user (in the last time window);
 - EOM - this is the command for end of measurement for the current gamer/user. After this message the statistical values for the SCR and SCL arousal (MinAbsoluteArousalArea, MinAverageArousalArea, MaxAbsoluteArousalArea, MaxAverageArousalArea, MinAbsoluteTonicAmplitude, MinAverageTonicAmplitude, MaxAbsoluteTonicAmplitude, MaxAverageTonicAmplitude and NumberParticipants) are updated.
+
+### Example of a JSON object returned by the asset
+
+```sh
+{
+   "SCRArousalArea":770.88437500000009,
+   "SCRAmplitude":{
+      "Minimum":0.0010000000000001119,
+      "Maximum":1.283,
+      "Mean":0.428,
+      "StdDeviation":0.604576435752062,
+      "Count":0.375,
+      "Name":"Amplitude"
+   },
+   "SCRRise":{
+      "Minimum":50,
+      "Maximum":5300,
+      "Mean":1350,
+      "StdDeviation":6.25,
+      "Count":0.5,
+      "Name":"Rise time"
+   },
+   "SCRRecoveryTime":{
+      "Minimum":25,
+      "Maximum":25,
+      "Mean":18.75,
+      "StdDeviation":0,
+      "Count":0.5,
+      "Name":"Recovery time"
+   },
+   "SCRAchievedArousalLevel":2,
+   "TonicStatistics":{
+      "Slope":0,
+      "MeanAmp":0,
+      "MinAmp":0,
+      "MaxAmp":2.266,
+      "StdDeviation":1.133
+   },
+   "SCLAchievedArousalLevel":1,
+   "MovingAverage: 0.76491874999999976
+}
+```
