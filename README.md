@@ -83,7 +83,7 @@ The application settings are following:
 - double GetGSRFeature(string featureName) – returns the value (as double number) of a specific GSR feature (featureName can be equal to "SCRArousalArea", "SCRAchievedArousalLevel", "SCLAchievedArousalLevel" and "MovingAverage)". It returns -1 if the device is not started (active);
 - void OpenPort() - opens the device port;
 - void SelectCOMPort(string portName) - choose port name of the GSR device. The default value is "COM3";
-- int StartSignalsRecord() - starts the device;
+- int StartSignalsRecord() - starts the device. It returns -1 if the device is not started
 - int  StopSignalsRecord() – stops the device. All the buffers are flushed. It returns -1 if the device is not stopped.
 
 ### Socket communication
