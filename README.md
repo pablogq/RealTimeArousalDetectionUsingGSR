@@ -16,6 +16,16 @@ Before starting with GSR measuring and arousal recognition, asset setup paramete
 The required sample rate [Hz] will be less than 2KHz. Next, the client-side will expect receiving request for the indexed arousal level of the player and will reply to them in real time. As well, he asset will be able to return values of mean tonic activity level, phasic activity represented by mean and maximum amplitude of skin conductance response (all in micro-siemens), rate of phasic activity (response peaks/sec), SCR rise time, SCR 1/2 recovery time, and slope of tonic activity (in micro-siemens/sec).
 Due to the intensive computing processing required for filtering and logging of the raw signal, as far as calculation of signal features, the asset is to be developed with a server and client side components communicating each other via sockets. Thus, the server component will be able to reside at a computer different than the one running the game.
 
+
+## Technical details
+
+The asset is implemented with Microsoft .NET Framework and can be used like a Windows form application in isolation or like a part of the Real-time Emotion Detection Asset. It can be run under Windows Vista or higher.
+
+## Dependencies
+
+- the asset uses the .Net package System.Configuration;
+- in order to be able to communicate with GSR device it is needed GSR measuring device driver.
+
 ## Code structure
 
 - /RealTimeArousalDetectionUsingGSR - contains projects responsible for calculating emotional arousal, filtering and displaying GSR signal and socket communication with the asset
@@ -113,3 +123,7 @@ The measured and calculated from the asset emotional arousal status of the curre
    "MovingAverage: 0.76491874999999976
 }
 ```
+
+## Licensing
+
+No specific licensing is required.
