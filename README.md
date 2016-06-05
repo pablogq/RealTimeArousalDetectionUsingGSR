@@ -74,6 +74,9 @@ The application settings are following:
 - SamplerateLabel - sample rate of the GSR device;
 - ArousalLevel - number of arousal levels.
 
+### Asset API
+- void SetSignalSamplerate(string speed) – sets the frequency [in Hz] of measuring the GSR signal. Rate should be greater 1 and less than 100 and default sampling is 10Hz. It returns 0 in case of success.
+
 ### Socket communication
 
 The measured and calculated from the asset emotional arousal status of the current gamer/user can be access by a socket client. For this purpose following messages are expected:
