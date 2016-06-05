@@ -84,7 +84,7 @@ The application settings are following:
 - void OpenPort() - opens the device port;
 - void SelectCOMPort(string portName) - choose port name of the GSR device. The default value is "COM3";
 - int StartSignalsRecord() - starts the device;
-- int  StopSignalsRecord() – stops the device. All the buffers are flushed; returns -1 if the device is not stopped.
+- int  StopSignalsRecord() – stops the device. All the buffers are flushed. It returns -1 if the device is not stopped.
 
 ### Socket communication
 
