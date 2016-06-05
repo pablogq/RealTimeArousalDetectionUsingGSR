@@ -21,7 +21,7 @@ Due to the intensive computing processing required for filtering and logging of 
 
 The asset is implemented with Microsoft .NET Framework and can be used like a Windows form application in isolation or like a part of the Real-time Emotion Detection Asset. It can be run under Windows Vista or higher.
 
-## Dependencies
+### Dependencies
 
 - the asset uses the .Net package System.Configuration;
 - in order to be able to communicate with GSR device it is needed GSR measuring device driver.
