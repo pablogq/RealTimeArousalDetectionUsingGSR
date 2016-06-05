@@ -28,10 +28,38 @@ Due to the intensive computing processing required for filtering and logging of 
 
 ## Deployment and usage instructions
 
+### Instalation and usage
+
 The asset can be used as library without graphical representation of the GSR signal or as Window application. In both cases for installation and usage the following steps are needed:
 
 - download or clone the repository;
 - open project in your .Net IDE (Visual Studio, SharpDevelop, MonoDevelop, etc.);
-- check application settings in project [DisplayGSRSignal](https://github.com/ddessy/RealTimeArousalDetectionUsingGSR/tree/master/RealTimeArousalDetectionUsingGSR/DisplayGSRSignal) and change if it is needed;
+- check application settings in the project [DisplayGSRSignal](https://github.com/ddessy/RealTimeArousalDetectionUsingGSR/tree/master/RealTimeArousalDetectionUsingGSR/DisplayGSRSignal) and change if it is needed;
 - plug the GSR device;
 - build and run application.
+
+###  Application settings
+
+The application settings are following:
+
+- LogFile - path to the log file;
+- MinAbsoluteArousalArea - the minimum arousal area achieved by all users until the moment;
+- MinAverageArousalArea - the average minimum arousal area achieved by all users until the moment;
+- MaxAbsoluteArousalArea - the maximum arousal area achieved by all users until the moment;
+- MaxAverageArousalArea - the average maximum arousal area achieved by all users until the moment;
+- MinAbsoluteTonicAmplitude - the minimum SCL amplitude achieved by all users until the moment;
+- MinAverageTonicAmplitude - the average minimum SCL amplitude achieved by all users until the moment;
+- MaxAbsoluteTonicAmplitude - the maximum SCL amplitude achieved by all users until the moment;
+- MaxAverageTonicAmplitude - the average maximum SCL amplitude achieved by all users until the moment;
+- NumberParticipants - number of users until the moment;
+- CalibrationMinArousalArea - the calibration minimum arousal area achieved by the current user;
+- CalibrationMaxArousalArea - the calibration maximum arousal area achieved by the current user;
+- CalibrationMinTonicAmplitude - the calibration minimum SCL amplitude achieved by the current user;
+- CalibrationMaxTonicAmplitude - the calibration minimum SCL amplitude achieved by the current user;
+- MinArousalArea - the minimum arousal area achieved by the current user;
+- MaxArousalArea - the maximum arousal area achieved by the current user;
+- MinTonicAmplitude - the minimum SCL amplitude achieved by the current user;
+- MaxTonicAmplitude - the maximum SCL amplitude achieved by the current user;
+- DefaultTimeWindow - default value for the time window;
+- SamplerateLabel - sample rate of the GSR device;
+- ArousalLevel - number of arousal levels.
