@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SignalDevice
+namespace Assets.Rage.GSRAsset.SignalDevice
 {
     /// <summary>
     /// For each channel (GSR channel and HR channel) we save the data received by the used device in a cache

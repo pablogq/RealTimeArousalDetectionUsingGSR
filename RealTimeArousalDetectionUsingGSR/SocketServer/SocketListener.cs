@@ -1,11 +1,11 @@
-﻿using Assets.Rage.GSRAsset;
+﻿using Assets.Rage.GSRAsset.SignalProcessor;
 using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 
-namespace SocketServer.Socket
+namespace Assets.Rage.GSRAsset.SocketServer
 {
     public class SocketListener
     {
@@ -15,11 +15,10 @@ namespace SocketServer.Socket
         {
             try
             {
-                // Set the TcpListener on port 13000.
+                // Set the TcpListener
                 Int32 port = 10116;
                 IPAddress localAddr = IPAddress.Parse("127.0.0.1");
 
-                // TcpListener server = new TcpListener(port);
                 server = new TcpListener(localAddr, port);
 
                 // Start listening for client requests.

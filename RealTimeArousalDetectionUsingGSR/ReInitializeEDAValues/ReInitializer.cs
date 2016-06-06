@@ -1,5 +1,4 @@
-﻿using Assets.Rage.GSRAsset;
-using System.Configuration;
+﻿using Assets.Rage.GSRAsset.SignalProcessor;
 
 namespace ReInitializeEDAValues
 {

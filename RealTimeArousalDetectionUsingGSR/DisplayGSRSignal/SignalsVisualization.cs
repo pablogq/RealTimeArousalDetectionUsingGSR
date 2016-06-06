@@ -1,15 +1,14 @@
-﻿using Assets.Rage.GSRAsset;
-using SignalDevice;
-using SocketServer.Socket;
+﻿using Assets.Rage.GSRAsset.SignalProcessor;
+using Assets.Rage.GSRAsset.SignalDevice;
+using Assets.Rage.GSRAsset.SocketServer;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Threading;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
 
-namespace DisplayGSRSignal
+namespace Assets.Rage.GSRAsset.DisplayGSRSignal
 {
     public partial class SignalsVisualization : Form
     {

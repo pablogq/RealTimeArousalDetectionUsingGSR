@@ -1,7 +1,6 @@
-﻿using System;
-using System.Windows.Forms;
+﻿using System.Windows.Forms;
 
-namespace DisplayGSRSignal
+namespace Assets.Rage.GSRAsset.DisplayGSRSignal
 {
     partial class SignalsVisualization
     {
@@ -99,6 +98,7 @@ namespace DisplayGSRSignal
             series2.ChartArea = "ChartArea1";
             series2.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Spline;
             series2.Color = System.Drawing.Color.Fuchsia;
+            series2.Enabled = false;
             series2.Legend = "Legend1";
             series2.Name = "Moving Average";
             series3.BorderWidth = 2;

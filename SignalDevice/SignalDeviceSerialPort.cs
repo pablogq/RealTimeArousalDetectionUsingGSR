@@ -1,6 +1,6 @@
 ﻿using System.IO.Ports;
 
-namespace SignalDevice
+namespace Assets.Rage.GSRAsset.SignalDevice
 {
     /*
      * The serial port should have only one instance.

@@ -1,6 +1,6 @@
 ﻿
 
-namespace Assets.Rage.GSRAsset
+namespace Assets.Rage.GSRAsset.SignalProcessor
 {
     public enum ButterworthPassType
     {

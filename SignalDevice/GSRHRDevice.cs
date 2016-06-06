@@ -5,7 +5,7 @@ using System.IO;
 using System.IO.Ports;
 //using SocketServer.Socket;
 
-namespace SignalDevice
+namespace Assets.Rage.GSRAsset.SignalDevice
 {
     public class GSRHRDevice : ISignalDeviceController
     {
@@ -96,9 +96,15 @@ namespace SignalDevice
             }
         }
 
-        public void SetSignalSamplerate(string samplerate)
+        public int SetSignalSamplerate(string samplerate)
         {
-            if (comport.IsOpen) comport.Write(appConfig.AppSettings.Settings["SamplerateLabel"].Value);
+            if (comport.IsOpen)
+            {
+                comport.Write(appConfig.AppSettings.Settings["SamplerateLabel"].Value);
+                return 0;
+            }
+
+            return -1;
         }
 
         public void SetSignalSamplerate()
@@ -126,18 +132,27 @@ namespace SignalDevice
             
         }
 
-        public void StartSignalsRecord()
+        public int StartSignalsRecord()
         {
             if (comport.IsOpen)
             {
                 comport.Write(appConfig.AppSettings.Settings["SamplerateLabel"].Value);
                 comport.Write("S");
+                return 0;
             }
+
+            return -1;
         }
 
-        public void StopSignalsRecord()
+        public int StopSignalsRecord()
         {
-            if (comport.IsOpen) comport.Write("E");
+            if (comport.IsOpen)
+            {
+                comport.Write("E");
+                return 0;
+            }
+
+            return -1;
         }
 /*
         public void CloseSocket()

@@ -1,4 +1,4 @@
-﻿namespace SignalDevice
+﻿namespace Assets.Rage.GSRAsset.SignalDevice
 {
     public enum DataMode { Text, Hex };
 
@@ -6,13 +6,14 @@
     {
         void SelectCOMPort(string portName);
 
-        void StartSignalsRecord();
+        int StartSignalsRecord();
 
-        void StopSignalsRecord();
+        int StopSignalsRecord();
 
         void OpenPort();
 
-        void SetSignalSamplerate(string speed);
+        int SetSignalSamplerate(string speed);
+
         int GetSignalSampleRate();
 
         void SetSignalSettings();

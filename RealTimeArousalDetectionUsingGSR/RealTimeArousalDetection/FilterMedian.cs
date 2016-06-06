@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Assets.Rage.GSRAsset
+namespace Assets.Rage.GSRAsset.SignalProcessor
 {
     class FilterMedian
     {

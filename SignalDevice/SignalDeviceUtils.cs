@@ -5,7 +5,7 @@ using SignalDevice.Properties;
 using System.Text;
 using System.Linq;
 
-namespace SignalDevice
+namespace Assets.Rage.GSRAsset.SignalDevice
 {
     public class SignalDeviceUtils
     {

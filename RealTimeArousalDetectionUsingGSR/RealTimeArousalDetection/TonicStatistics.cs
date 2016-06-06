@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text;
 
-namespace Assets.Rage.GSRAsset
+namespace Assets.Rage.GSRAsset.SignalProcessor
 {
     public class TonicStatistics
     {

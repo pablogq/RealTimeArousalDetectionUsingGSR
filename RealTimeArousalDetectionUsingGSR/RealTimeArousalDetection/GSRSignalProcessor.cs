@@ -1,12 +1,12 @@
 ﻿using System;
-using SignalDevice;
+using Assets.Rage.GSRAsset.SignalDevice;
 using System.IO;
 using System.Configuration;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web.Script.Serialization;
 
-namespace Assets.Rage.GSRAsset
+namespace Assets.Rage.GSRAsset.SignalProcessor
 {
     public class GSRSignalProcessor
     {
@@ -41,6 +41,11 @@ namespace Assets.Rage.GSRAsset
             get
             {
                 return defaultTimeWindow;
+            }
+
+            set
+            {
+                defaultTimeWindow = value;
             }
         }
 
