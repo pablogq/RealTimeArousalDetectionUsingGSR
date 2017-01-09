@@ -26,7 +26,7 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
         private double minimum;
         private double maximum;
         private Decimal mean;
-        private Decimal std;
+        private Decimal stdDeviation;
         private String name;
         private double count;
 
@@ -80,11 +80,11 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
         {
             get
             {
-                return std;
+                return stdDeviation;
             }
             set
             {
-                std = value;
+                stdDeviation = value;
             }
         }
 
@@ -112,14 +112,15 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
             }
         }
 
-        public string ToString()
+        
+        public override string ToString()
         {
             StringBuilder str = new StringBuilder();
             str.Append("Statistics for " + name + ": \n");
             str.Append("Minimum value: " + minimum + "\n");
             str.Append("Maximum value: " + maximum + "\n");
             str.Append("Mean value: " + mean + "\n");
-            str.Append("Standard deviation: " + std + "\n");
+            str.Append("Standard deviation: " + stdDeviation + "\n");
             str.Append("Count: " + count + "\n");
 
             return str.ToString();

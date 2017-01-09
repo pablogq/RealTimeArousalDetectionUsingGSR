@@ -22,20 +22,23 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Configuration;
 
 namespace Assets.Rage.GSRAsset.SocketServer
 {
     public class SocketListener
     {
         TcpListener server = null;
+        private Configuration appConfig = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+
 
         public void StartListening()
         {
             try
             {
                 // Set the TcpListener
-                Int32 port = 10116;
-                IPAddress localAddr = IPAddress.Parse("127.0.0.1");
+                Int32 port = Int32.Parse(appConfig.AppSettings.Settings["SocketPort"].Value);
+                IPAddress localAddr = IPAddress.Parse(appConfig.AppSettings.Settings["SocketIPAddress"].Value);
 
                 server = new TcpListener(localAddr, port);
 

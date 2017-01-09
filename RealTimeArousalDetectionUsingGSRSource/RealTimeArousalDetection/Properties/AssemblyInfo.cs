@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("ReInitializeEDAValues")]
+[assembly: AssemblyTitle("RealTimeArousalDetection")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Sofia University")]
-[assembly: AssemblyProduct("ReInitializeEDAValues")]
+[assembly: AssemblyProduct("RealTimeArousalDetection")]
 [assembly: AssemblyCopyright("Copyright ©  2016")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("aa690d74-e383-46f4-9fbe-69f7084e4121")]
+[assembly: Guid("2276781f-bee6-4ffa-9ecc-ec6f00880eca")]
 
 // Version information for an assembly consists of the following four values:
 //

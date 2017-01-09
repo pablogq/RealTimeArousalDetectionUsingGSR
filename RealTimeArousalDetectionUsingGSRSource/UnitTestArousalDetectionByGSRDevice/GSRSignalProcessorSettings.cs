@@ -28,7 +28,7 @@ namespace Assets.Rage.GSRAsset.UnitTest
         public void SetMaxArousalLevel_SetNewValue_ReturnTrue()
         {
             //arrange
-            ArousalDetectionGSRDeviceIntegrator gsrHandler = new ArousalDetectionGSRDeviceIntegrator();
+            RealTimeArousalDetectionUsingGSRAsset gsrHandler = new RealTimeArousalDetectionUsingGSRAsset();
 
             //act
             int newMaxArousalLevel = gsrHandler.SetMaxArousalLevel(2);
@@ -41,7 +41,7 @@ namespace Assets.Rage.GSRAsset.UnitTest
         public void SetMaxArousalLevel_SetNewValue_ReturnFalse()
         {
             //arrange
-            ArousalDetectionGSRDeviceIntegrator gsrHandler = new ArousalDetectionGSRDeviceIntegrator();
+            RealTimeArousalDetectionUsingGSRAsset gsrHandler = new RealTimeArousalDetectionUsingGSRAsset();
             int oldArousalLevel = gsrHandler.GetGSRSignalProcessor().ArousalLevel;
 
             //act
@@ -55,7 +55,7 @@ namespace Assets.Rage.GSRAsset.UnitTest
         public void SetTimeWindow_SetNewValue_ReturnTrue()
         {
             //arrange
-            ArousalDetectionGSRDeviceIntegrator gsrHandler = new ArousalDetectionGSRDeviceIntegrator();
+            RealTimeArousalDetectionUsingGSRAsset gsrHandler = new RealTimeArousalDetectionUsingGSRAsset();
 
             //act
             int newMaxArousalLevel = gsrHandler.SetTimeWindow(15);
@@ -68,7 +68,7 @@ namespace Assets.Rage.GSRAsset.UnitTest
         public void SetTimeWindow_SetNewValue_ReturnFalse()
         {
             //arrange
-            ArousalDetectionGSRDeviceIntegrator gsrHandler = new ArousalDetectionGSRDeviceIntegrator();
+            RealTimeArousalDetectionUsingGSRAsset gsrHandler = new RealTimeArousalDetectionUsingGSRAsset();
             double oldTimeWindow = gsrHandler.GetGSRSignalProcessor().DefaultTimeWindow;
 
             //act

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
- using Assets.Rage.GSRAsset.SignalProcessor;
+using Assets.Rage.GSRAsset.SignalProcessor;
 using Assets.Rage.GSRAsset.SignalDevice;
 using Assets.Rage.GSRAsset.SocketServer;
 using System;
@@ -25,6 +25,7 @@ using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
+using System.Configuration;
 
 namespace Assets.Rage.GSRAsset.DisplayGSRSignal
 {
@@ -34,41 +35,20 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
         GSRSignalProcessor gsrHandler = new GSRSignalProcessor();
         private SocketListener socketListener = new SocketListener();
 
-        private System.Windows.Forms.Timer WorkingPeriodTimer;
-        private System.Windows.Forms.Timer PausePeriodTimer;
-
         private string medianLineName = "De-noised filter";
         private string butterworthLowPassLine = "Tonic line";
         private string butterworthHighPassLine = "Phasic line";
         private double butterworthTonicPhasicFrequency = 0.05;
-
-        int workPeriod;
-        int pausePeriod;
-
-        //bsAsset will provide common methods
-        //BaseAsset bsAsset = new BaseAsset();
+        private double xMaxValue = 0.0;
+        private double yMaxValue = 0.0;
+        private double yFilterMaxValue = 0.0;
+        private double xMinValue = 0.0;
+        private double yMinValue = 0.0;
+        private double yFilterMinValue = 0.0;
 
         public SignalsVisualization()
         {
             InitializeComponent();
-
-            signalController.SelectCOMPort("COM3");
-            signalController.OpenPort();
-            //signalController.SetSignalSamplerate();
-            //signalController.StartSignalsRecord();
-
-            workPeriod = 4 * 1000;
-            pausePeriod = 1 * 1000;
-
-            this.WorkingPeriodTimer = new System.Windows.Forms.Timer(this.components);
-            WorkingPeriodTimer.Tick += pause_Working_Event;
-            WorkingPeriodTimer.Interval = workPeriod;
-
-            this.PausePeriodTimer = new System.Windows.Forms.Timer(this.components);
-            PausePeriodTimer.Tick += start_working_Event;
-            PausePeriodTimer.Interval = pausePeriod;
-
-            WorkingPeriodTimer.Start();
 
             if (DoesChartDisplay()) GSRChartDisplay();
             timer1.Tick += timer1_Tick;
@@ -77,22 +57,35 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
 
         private static bool DoesChartDisplay()
         {
+            List<double> channelData = CacheSignalData.GetAllForChannel(0);
             //return false;// Cache.GetAllForChannel(0) != null && Cache.GetAllForChannel(0).Count > 0;
-            return Cache.GetAllForChannel(0) != null && Cache.GetAllForChannel(0).Count > 0;
+            return channelData != null && channelData.Count > 0;
         }
 
         //Handle click on the Refresh button
         private void refresh_Click(object sender, EventArgs e)
         {
             //RecordPauseDeviceSignal();
-            
+
+            if (!"TestWithoutDevice".Equals(ConfigurationManager.AppSettings.Get("ApplicationMode")))
+            {
+                signalController.SelectCOMPort(ConfigurationManager.AppSettings.Get("COMPort"));
+                signalController.OpenPort();
+                signalController.StartSignalsRecord();
+            }
+
+            Logger.Log("Sample rate is: " + signalController.GetSignalSampleRateByConfig());
+
             timer1.Start();
-            if (DoesChartDisplay())  GSRChartDisplay();
+            if (DoesChartDisplay()) GSRChartDisplay();
+
+            // timer1.Tick += timer1_Tick;
         }
 
         private void GSRChartDisplay()
         {
-            int p = Cache.GetAllForChannel(0) != null ? Cache.GetAllForChannel(0).Count : 0;
+            int p = CacheSignalData.GetAllForChannel(0) != null ? CacheSignalData.GetAllForChannel(0).Count : 0;
+            Logger.Log(DateTime.Now.Millisecond + ", " + p);
 
             ChartClean();
 
@@ -100,23 +93,19 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
             ChartArea filterChart = butterworthChart.ChartAreas[0];
             int sampleRate = signalController.GetSignalSampleRate();
 
-            //Logger.Log("start2: " + (DateTime.Now - DateTime.MinValue).TotalMilliseconds);
             Dictionary<int, List<double>> channelsValues = gsrHandler.ExtractChannelsValues();
-            //Logger.Log("channelsValues: " + channelsValues.ElementAt(0).Value.Count);
-            //Dictionary<int, List<double>> channelsValues = gsrHandler.ExtractChannelsValuesFromFile();
             gsrHandler.FillCoordinates(sampleRate);
-            //Logger.Log("count: " + gsrHandler.coordinates.Count);
             Dictionary<int, Dictionary<double, double>> medianFilterCoordinates = gsrHandler.GetMedianFilterPoints(gsrHandler.coordinates);
             FilterButterworth highPassFilter = new FilterButterworth(butterworthTonicPhasicFrequency, sampleRate, ButterworthPassType.Highpass);
             FilterButterworth lowPassFilter = new FilterButterworth(butterworthTonicPhasicFrequency, sampleRate, ButterworthPassType.Lowpass);
 
-            double xMaxValue = 0.0;
-            double xMinValue = 0.0;
-            double yMaxValue = 0.0;
-            double yMinValue = 0.0;
+            xMaxValue = 0.0;
+            xMinValue = 0.0;
+            yMaxValue = 0.0;
+            yMinValue = 0.0;
 
-            double yFilterMaxValue = 0.0;
-            double yFilterMinValue = 0.0;
+            yFilterMaxValue = 0.0;
+            yFilterMinValue = 0.0;
 
             // Adjust Y & X axis scale
             gsrChart.ResetAutoValues();
@@ -135,8 +124,8 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
                 Dictionary<double, double> coordinatesValues = SortDictionaryByKey(channelCoordinates.Value);
                 foreach (KeyValuePair<double, double> coordinate in coordinatesValues)
                 {
-                    SetMinMax(ref xMaxValue, ref xMinValue, coordinate.Key, null, null);
-                    SetMinMax(ref yMaxValue, ref yMinValue, coordinate.Value, MinYTxtBox.Text, MaxYTxtBox.Text);
+                    SetMinMax(coordinate.Key, null, null, "x");
+                    SetMinMax(coordinate.Value, MinYTxtBox.Text, MaxYTxtBox.Text, "y");
 
                     gsrChart.Series[currentChannel].Points.AddXY(coordinate.Key, coordinate.Value);
                 }
@@ -152,8 +141,8 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
                         double highPassValue = highPassFilter.GetFilterValue(medianValue);
                         double lowPassValue = lowPassFilter.GetFilterValue(medianValue);
 
-                        SetMinMax(ref yFilterMaxValue, ref yFilterMinValue, highPassValue, null, null);
-                        SetMinMax(ref yFilterMaxValue, ref yFilterMinValue, lowPassValue, MinYFltTxtBox.Text, MaxYFltTxtBox.Text);
+                        SetMinMax(highPassValue, null, null, "xFilter");
+                        SetMinMax(lowPassValue, MinYFltTxtBox.Text, MaxYFltTxtBox.Text, "yFilter");
 
                         gsrChart.Series[medianLineName].Points.AddXY(medianCoordinate.Key, medianValue);
                         butterworthChart.Series[butterworthLowPassLine].Points.AddXY(medianCoordinate.Key, lowPassValue);
@@ -185,7 +174,7 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
             //{
             SetChartDetail(chart, xMaxValue, xMinValue, yMaxValue, yMinValue);
             SetChartDetail(filterChart, xMaxValue, xMinValue, yFilterMaxValue, yFilterMinValue);
-            // }
+            //}
 
             //gsrChart.Invalidate();
             //butterworthChart.Invalidate();
@@ -207,7 +196,7 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
                 }
             }
 
-            if(butterworthChart.Series[butterworthHighPassLine].Points.Count > maxNumberOfPoints)
+            if (butterworthChart.Series[butterworthHighPassLine].Points.Count > maxNumberOfPoints)
             {
                 int exceedPoints = butterworthChart.Series[butterworthHighPassLine].Points.Count - maxNumberOfPoints;
                 for (int i = 0; i < exceedPoints; i++)
@@ -216,7 +205,7 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
                 }
             }
 
-            if(butterworthChart.Series[butterworthLowPassLine].Points.Count > maxNumberOfPoints)
+            if (butterworthChart.Series[butterworthLowPassLine].Points.Count > maxNumberOfPoints)
             {
                 int exceedPoints = butterworthChart.Series[butterworthLowPassLine].Points.Count - maxNumberOfPoints;
                 for (int i = 0; i < exceedPoints; i++)
@@ -225,7 +214,7 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
                 }
             }
 
-            if(gsrChart.Series[medianLineName].Points.Count > maxNumberOfPoints)
+            if (gsrChart.Series[medianLineName].Points.Count > maxNumberOfPoints)
             {
                 int exceedPoints = gsrChart.Series[medianLineName].Points.Count - maxNumberOfPoints;
                 for (int i = 0; i < exceedPoints; i++)
@@ -244,7 +233,7 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
 
             if (flagMarked)
             {
-                foreach(InflectionPoint currentPoint in inflectionPoints)
+                foreach (InflectionPoint currentPoint in inflectionPoints)
                 {
                     MarkInflectedPoint(chartAreaPoints, currentPoint.IndexOrigin, chart, seriesName);
                 }
@@ -257,7 +246,7 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
         {
             List<InflectionPoint> result = new List<InflectionPoint>();
             int i = 0;
-            foreach(DataPoint currentPoint in chartAreaPoints)
+            foreach (DataPoint currentPoint in chartAreaPoints)
             {
                 result.Add(new InflectionPoint(currentPoint.XValue, currentPoint.YValues[0], i));
                 i++;
@@ -269,44 +258,90 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
         private static Dictionary<double, double> TransformToDictionary(DataPointCollection chartAreaPoints)
         {
             Dictionary<double, double> result = new Dictionary<double, double>();
-            foreach(DataPoint currentPoint in chartAreaPoints)
+            foreach (DataPoint currentPoint in chartAreaPoints)
             {
                 result.Add(currentPoint.XValue, currentPoint.YValues[0]);
             }
 
-            return result.OrderBy(key=>key.Key).ToDictionary((keyItem) => keyItem.Key, (valueItem) => valueItem.Value);
+            return result.OrderBy(key => key.Key).ToDictionary((keyItem) => keyItem.Key, (valueItem) => valueItem.Value);
         }
 
         private static void MarkInflectedPoint(DataPointCollection chartPoints, int i, Chart chart, String seriesName)
         {
             chartPoints[i].MarkerStyle = MarkerStyle.Circle;
             chartPoints[i].MarkerColor = Color.Blue;
-            chartPoints[i].MarkerSize = 5;            
+            chartPoints[i].MarkerSize = 5;
         }
 
-        private static void SetMinMax(ref double xMaxValue, ref double xMinValue, double coordinateKeyValue, String requiredMin, String requiredMax)
+        private void SetMinMax(double coordinateKeyValue, String requiredMin, String requiredMax, String target)
         {
-            if(!String.IsNullOrEmpty(requiredMin) && !String.IsNullOrEmpty(requiredMax))
+            double xxMaxValue = 0.0;
+            double xxMinValue = 0.0;
+
+            if ("x".Equals(target))
             {
-                xMinValue = Convert.ToDouble(requiredMin);
-                xMaxValue = Convert.ToDouble(requiredMax);
+                xxMaxValue = xMaxValue;
+                xxMinValue = xMinValue;
             }
-            else if (xMaxValue.Equals(0.0) && xMinValue.Equals(0.0))
+            else if ("y".Equals(target))
             {
-                xMaxValue = coordinateKeyValue;
-                xMinValue = coordinateKeyValue;
+                xxMaxValue = yMaxValue;
+                xxMinValue = yMinValue;
+            }
+            else if ("xFilter".Equals(target))
+            {
+                xxMaxValue = yFilterMaxValue;
+                xxMinValue = yFilterMinValue;
+            }
+            else if ("yFilter".Equals(target))
+            {
+                xxMaxValue = yFilterMaxValue;
+                xxMinValue = yFilterMinValue;
+            }
+
+            if (!String.IsNullOrEmpty(requiredMin) && !String.IsNullOrEmpty(requiredMax))
+            {
+                xxMinValue = Convert.ToDouble(requiredMin);
+                xxMaxValue = Convert.ToDouble(requiredMax);
+            }
+            else if (xxMaxValue.Equals(0.0) && xxMinValue.Equals(0.0))
+            {
+                xxMaxValue = coordinateKeyValue;
+                xxMinValue = coordinateKeyValue;
             }
             else
             {
-                if (xMaxValue.CompareTo(coordinateKeyValue) < 0)
+                if (xxMaxValue.CompareTo(coordinateKeyValue) < 0)
                 {
-                    xMaxValue = coordinateKeyValue;
+                    xxMaxValue = coordinateKeyValue;
                 }
 
-                if (xMinValue.CompareTo(coordinateKeyValue) > 0)
+
+                if (xxMinValue.CompareTo(coordinateKeyValue) > 0)
                 {
-                    xMinValue = coordinateKeyValue;
+                    xxMinValue = coordinateKeyValue;
                 }
+            }
+
+            if ("x".Equals(target))
+            {
+                xMaxValue = xxMaxValue;
+                xMinValue = xxMinValue;
+            }
+            else if ("y".Equals(target))
+            {
+                yMaxValue = xxMaxValue;
+                yMinValue = xxMinValue;
+            }
+            else if ("xFilter".Equals(target))
+            {
+                yFilterMaxValue = xxMaxValue;
+                yFilterMinValue = xxMinValue;
+            }
+            else if ("yFilter".Equals(target))
+            {
+                yFilterMaxValue = xxMaxValue;
+                yFilterMinValue = xxMinValue;
             }
         }
 
@@ -318,6 +353,11 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
             // Set maximum values.
             chart.AxisX.Maximum = maxValue;
 
+            if (yMaxValue - yMinValue < 0.00005)
+            {
+                yMinValue -= 0.00005;
+            }
+
             chart.AxisY.Maximum = yMaxValue;
             chart.AxisY.Minimum = yMinValue;
 
@@ -325,7 +365,7 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
             chart.CursorX.AutoScroll = true;
 
             //zoom to [minValue, minvalue+numberOfVisiblePoints]
-            //chart.AxisX.ScaleView.Zoomable = true;
+            chart.AxisX.ScaleView.Zoomable = true;
             chart.AxisX.ScaleView.SizeType = DateTimeIntervalType.Number;
 
             if (maxValue.CompareTo((double)500.0) < 0)
@@ -336,7 +376,7 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
             {
                 chart.AxisX.ScaleView.Zoom(maxValue - 500, maxValue);
             }
-            
+
             chart.AxisX.ScrollBar.IsPositionedInside = true;
 
             // disable zoom-reset button (only scrollbar's arrows are available)
@@ -369,42 +409,17 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
 
         private void timer1_Tick(object sender, EventArgs e)
         {
-            if(DoesChartDisplay()) GSRChartDisplay();
-        }
-
-        private void pause_Working_Event(object sender, EventArgs e)
-        {
-            PausePeriodTimer.Start();
-            WorkingPeriodTimer.Stop();
-            signalController.StopSignalsRecord();
-        }
-
-        private void start_working_Event(object sender, EventArgs e)
-        {
-            WorkingPeriodTimer.Start();
-            PausePeriodTimer.Stop();
-            signalController.SelectCOMPort("COM3");
-            //signalController.OpenPort();
-            signalController.StartSignalsRecord();
+            if (DoesChartDisplay()) GSRChartDisplay();
         }
 
         //Handle click on the Stop button
         private void stop_Click(object sender, EventArgs e)
         {
-            //signalController.StopSignalsRecord();
+            signalController.StopSignalsRecord();
 
             //GSRSignalProcessor gsrHandler = new GSRSignalProcessor();
-            
-            //ArousalStatistics gsrArousalStatistics = GetInflectionPoints(gsrChart, gsrChart.Series[medianLineName].Points, medianLineName, true);
-            //ArousalInfo.Text = (gsrArousalStatistics != null) ? gsrArousalStatistics.ToString("De-noised filter") : "";
-            /*
-            ArousalStatistics butterworthStatistics = GetInflectionPoints(butterworthChart, butterworthChart.Series[butterworthHighPassLine].Points, butterworthHighPassLine, true);
-            if (butterworthStatistics != null) butterworthStatistics.TonicStatistics = gsrHandler.GetTonicStatistics(TransformToDictionary(butterworthChart.Series[butterworthLowPassLine].Points));
 
-            JavaScriptSerializer js = new JavaScriptSerializer();
-            string json = js.Serialize(butterworthStatistics);
-            */
-            ArousalInfoButterworth.Text = gsrHandler.GetJSONArousalStatistics( gsrHandler.GetArousalStatisticsByMedianFilter(TransformToDictionary(gsrChart.Series[medianLineName].Points), -1.0, TimeWindowMeasure.Seconds) );
+            //ArousalInfoButterworth.Text = gsrHandler.GetJSONArousalStatistics( gsrHandler.GetArousalStatisticsByMedianFilter(TransformToDictionary(gsrChart.Series[medianLineName].Points), -1.0, TimeWindowMeasure.Seconds) );
 
             //ArousalInfoButterworth.Text = (butterworthStatistics != null) ? butterworthStatistics.ToString("Phasic line") : "";
 
@@ -412,7 +427,7 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
             //timer1.Stop();
         }
 
-        
+
         private void MinYBtn_Click(object sender, EventArgs e)
         {
             double newYMin;
@@ -420,7 +435,7 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
             {
                 gsrChart.ChartAreas[0].AxisY.Minimum = newYMin;
             }
-            //gsrChart.ChartAreas[0].AxisY.Minimum = newYMin;
+            gsrChart.ChartAreas[0].AxisY.Minimum = newYMin;
         }
 
         private void MaxYBtn_Click(object sender, EventArgs e)

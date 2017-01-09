@@ -72,7 +72,7 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
             this.refreshButton.Name = "refreshButton";
             this.refreshButton.Size = new System.Drawing.Size(69, 30);
             this.refreshButton.TabIndex = 0;
-            this.refreshButton.Text = "Refresh";
+            this.refreshButton.Text = "Start";
             this.refreshButton.UseVisualStyleBackColor = true;
             this.refreshButton.Click += new System.EventHandler(this.refresh_Click);
             // 

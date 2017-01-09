@@ -27,8 +27,7 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
         private double meanAmp;
         private double minAmp;
         private double maxAmp;
-        private Decimal std;
-        //private int sclAchievedArousalLevel;
+        private Decimal stdDeviation;
 
         public double Slope
         {
@@ -86,39 +85,26 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
         {
             get
             {
-                return std;
+                return stdDeviation;
             }
 
             set
             {
-                std = value;
+                stdDeviation = value;
             }
         }
 
-        /*
-        public int SCLAchievedArousalLevel
-        {
-            get
-            {
-                return sclAchievedArousalLevel;
-            }
-
-            set
-            {
-                sclAchievedArousalLevel = value;
-            }
-        }
-        */
-
-        public string ToString()
+        public override string ToString()
         {
             StringBuilder str = new StringBuilder();
 
+            Logger.Log("Slope1: " + slope);
             str.Append("Slope: " + slope + ": \n");
+            Logger.Log("Slope2: " + slope);
             str.Append("Minimum value: " + minAmp + "\n");
             str.Append("Maximum value: " + maxAmp + "\n");
             str.Append("Mean value: " + meanAmp + "\n");
-            str.Append("Standard deviation: " + std + "\n");
+            str.Append("Standard deviation: " + stdDeviation + "\n");
             //str.Append("Tonic level: " + sclAchievedArousalLevel + "\n");
 
             return str.ToString();

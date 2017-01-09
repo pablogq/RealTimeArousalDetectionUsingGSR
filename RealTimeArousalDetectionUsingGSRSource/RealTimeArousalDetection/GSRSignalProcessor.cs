@@ -69,16 +69,16 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
 
         public GSRSignalProcessor()
         {
+            //ConfigurationManager.RefreshSection("appSettings");
+
             channelsValues = new Dictionary<int, List<double>>();
-            pathToBinaryFile = ConfigurationManager.AppSettings.Get("BinaryFile");
             gsrValuesReadTime = (double)(DateTime.Now - DateTime.MinValue).TotalMilliseconds;
 
             arousalLevel = Convert .ToInt32(settings.AppSettings.Settings["ArousalLevel"].Value);
             defaultTimeWindow = GetAppValue("DefaultTimeWindow");
 
             //re-initialize calibration data
-            settings.AppSettings.Settings["CalibrationMinArousalArea"].Value = 
-            
+            settings.AppSettings.Settings["CalibrationMinArousalArea"].Value =             
                 settings.AppSettings.Settings["MinAverageArousalArea"].Value;
             settings.AppSettings.Settings["CalibrationMaxArousalArea"].Value =
                 settings.AppSettings.Settings["MaxAverageArousalArea"].Value;
@@ -87,7 +87,7 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
             settings.AppSettings.Settings["CalibrationMaxTonicAmplitude"].Value =
                 settings.AppSettings.Settings["MaxAverageTonicAmplitude"].Value;
 
-            //settings.Save(ConfigurationSaveMode.Modified);
+            //settings.Save(ConfigurationSaveMode.Minimal);
             //ConfigurationManager.RefreshSection("appSettings");
 
             /*
@@ -97,16 +97,10 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
             maxTonicAmplitude = 0.0;
             */
         }
-
-        public void SetPathToBinaryFile(String path)
-        {
-            this.pathToBinaryFile = path;
-        }
-
-        
+     
         public Dictionary<int, List<double>> ExtractChannelsValues()
         {
-            channelsValues = Cache.GetChannelsCache();
+            channelsValues = CacheSignalData.GetChannelsCache();
             return channelsValues;
         }
 
@@ -192,13 +186,19 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
 
         public ArousalStatistics GetArousalStatistics(Dictionary<double, double> coordinates, double timeWindow, TimeWindowMeasure timeWindowType, int sampleRate)
         {
+            /*
+            Logger.Log(coordinates.Values.ElementAt(coordinates.Count - 4).ToString());
+            Logger.Log(coordinates.Values.ElementAt(coordinates.Count - 3).ToString());
+            Logger.Log(coordinates.Values.ElementAt(coordinates.Count - 2).ToString());
+            Logger.Log(coordinates.Values.ElementAt(coordinates.Count-1).ToString());
+            */
             if (timeWindow.CompareTo(0) <= 0 || sampleRate <= 0 || coordinates.Count <= 0) return null;
 
             int numberOfAffectedPoints = GetNumberOfAffectedPoints(timeWindow, timeWindowType, sampleRate);
 
             if (coordinates.Count < numberOfAffectedPoints) return GetArousalStatistics(coordinates);
             double timeWindowInSeconds = timeWindowType.Equals(TimeWindowMeasure.Milliseconds) ? timeWindow / 1000 : timeWindow;
-            return GetArousalInfoForCoordinates(coordinates, numberOfAffectedPoints, timeWindow);
+            return GetArousalInfoForCoordinates(coordinates, numberOfAffectedPoints, timeWindowInSeconds);
         }
 
         public ArousalStatistics GetArousalStatistics(Dictionary<double, double> coordinates)
@@ -213,11 +213,27 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
             ArousalStatistics result = new ArousalStatistics();
             result = GetArousalInfoForInflectionPoints(inflectionPoints, timeWindow);
             result.SCRArousalArea = GetArousalArea(coordinates, numberOfAffectedPoints, timeWindow) ;
-            result.MovingAverage = GetMovingAverage(coordinates, numberOfAffectedPoints) ;
+            Dictionary<double, double> movingAverageCoordinates = new Dictionary<double, double>();
+            this.coordinates.TryGetValue(0, out movingAverageCoordinates);
+            SortedDictionary<double, double> movingAverageCoordinatesSorted = SortedDictionary(movingAverageCoordinates);
+            result.MovingAverage = GetMovingAverage(movingAverageCoordinatesSorted, numberOfAffectedPoints) ;
             result.SCRAchievedArousalLevel = GetPhasicLevel(result.SCRArousalArea);
+            result.LastValue = coordinates.ElementAt(coordinates.Count - 1).Value;
+            result.LastRawSignalValue = movingAverageCoordinatesSorted.Values.ElementAt(movingAverageCoordinatesSorted.Count - 1);
             SetMinMaxArousalArea(result.SCRArousalArea);
             
             return result;
+        }
+
+        private SortedDictionary<double, double> SortedDictionary(Dictionary<double, double> targetDictionary)
+        {
+            SortedDictionary<double, double> sdict = new SortedDictionary<double, double>();
+            for (int i = 0; i < targetDictionary.Keys.Count; i++)
+            {
+                sdict.Add(targetDictionary.Keys.ElementAt<double>(i), targetDictionary.Values.ElementAt<double>(i));
+            }
+
+            return sdict;
         }
 
         private void SetMinMaxArousalArea(double scrArousalArea)
@@ -241,8 +257,8 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
                 settings.AppSettings.Settings["MaxArousalArea"].Value = scrArousalArea.ToString();
             }
 
-            settings.Save(ConfigurationSaveMode.Minimal);
-            ConfigurationManager.RefreshSection("appSettings");
+            //settings.Save(ConfigurationSaveMode.Minimal);
+            //ConfigurationManager.RefreshSection("appSettings");
         }
 
         private int GetTonicLevel(double tonicAverageAmplitude)
@@ -261,8 +277,8 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
                 return arousalLevel;
             }
 
-            settings.Save(ConfigurationSaveMode.Modified);
-            ConfigurationManager.RefreshSection("appSettings");
+            //settings.Save(ConfigurationSaveMode.Minimal);
+            //ConfigurationManager.RefreshSection("appSettings");
 
             double step = (arousalLevel != 0) ? (GetAppValue("MaxAverageTonicAmplitude") - GetAppValue("MinAverageTonicAmplitude")) / arousalLevel : 0.0;
             return (step.CompareTo(0.0) != 0) ? (int)Math.Ceiling((tonicAverageAmplitude -
@@ -271,7 +287,7 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
 
         private int GetPhasicLevel(double scrArousalArea)
         {
-            if(scrArousalArea.CompareTo(Convert.ToDouble(settings.AppSettings.Settings["MinAverageArousalArea"].Value)) <= 0)
+            if (scrArousalArea.CompareTo(Convert.ToDouble(settings.AppSettings.Settings["MinAverageArousalArea"].Value)) <= 0)
             {
                 settings.AppSettings.Settings["MinAverageArousalArea"].Value = scrArousalArea.ToString();
                 return 1;
@@ -283,8 +299,8 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
                 return arousalLevel;
             }
 
-            settings.Save(ConfigurationSaveMode.Modified);
-            ConfigurationManager.RefreshSection("appSettings");
+            //settings.Save(ConfigurationSaveMode.Minimal);
+            //ConfigurationManager.RefreshSection("appSettings");
 
             double step = (arousalLevel != 0) ?(GetAppValue("MaxAverageArousalArea") - GetAppValue("MinAverageArousalArea")) / arousalLevel : 0.0;
             return (step.CompareTo(0.0) != 0) ? (int)Math.Ceiling((scrArousalArea - GetAppValue("MinAverageArousalArea")) / step) : 0;
@@ -321,8 +337,8 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
 
         private int GetNumberOfAffectedPoints(double timeWindow, TimeWindowMeasure timewindowType, int sampleRate)
         {
-            timeWindow = timewindowType.Equals(TimeWindowMeasure.Milliseconds) ? timeWindow : timeWindow * 1000;
-            int numberOfAffectedPoints = Convert.ToInt32((sampleRate / 1000.0) * timeWindow);
+            timeWindow = timewindowType.Equals(TimeWindowMeasure.Milliseconds) ? (timeWindow/1000) : timeWindow;
+            int numberOfAffectedPoints = Convert.ToInt32((1000.0 / sampleRate) * timeWindow);
 
             return numberOfAffectedPoints;
         }
@@ -395,17 +411,21 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
                 settings.AppSettings.Settings["MaxTonicAmplitude"].Value = maxAmp.ToString();
             }
 
-            settings.Save(ConfigurationSaveMode.Modified);
-            ConfigurationManager.RefreshSection("appSettings"); ;
+            //settings.Save(ConfigurationSaveMode.Minimal);
+            //ConfigurationManager.RefreshSection("appSettings"); ;
         }
 
-        private double GetMovingAverage(Dictionary<double, double> coordinates, int numberOfAffectedPoints)
+        private double GetMovingAverage(SortedDictionary<double, double> coordinates, int numberOfAffectedPoints)
         {
             double movingAverage = 0;
-            for (int i = (coordinates.Count - numberOfAffectedPoints); i < (coordinates.Count - 1); i++)
+            //Logger.Log(".................... movingaverage = " + movingAverage);
+            for (int i = (coordinates.Count - numberOfAffectedPoints); i < coordinates.Count; i++)
             {
                 movingAverage += Math.Abs(coordinates.ElementAt(i).Value);
+                //Logger.Log("Moving average test: " + coordinates.ElementAt(i).Value);
             }
+            //Logger.Log(".................... movingaverage = " + movingAverage);
+            //Logger.Log(".................... numberOfAffectedPoints = " + numberOfAffectedPoints);
 
             return (movingAverage / numberOfAffectedPoints);
         }
@@ -422,15 +442,18 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
             * Pm is the intercept point between the line (P1, P2) and y=0
             */
             double area = 0;
+            //Logger.Log(".................... area = " + area);
+
+            SortedDictionary<double, double> srtCoordinates = SortedDictionary(coordinates);
             for(int i = (coordinates.Count - numberOfAffectedPoints); i < (coordinates.Count - 1); i++)
             {
                 
                 if (i < (coordinates.Count - 2))
                 {
-                    double x1 = coordinates.ElementAt(i).Key;
-                    double y1 = coordinates.ElementAt(i).Value;
-                    double x2 = coordinates.ElementAt(i + 1).Key;
-                    double y2 = coordinates.ElementAt(i + 1).Value;
+                    double x1 = srtCoordinates.ElementAt(i).Key;
+                    double y1 = srtCoordinates.ElementAt(i).Value;
+                    double x2 = srtCoordinates.ElementAt(i + 1).Key;
+                    double y2 = srtCoordinates.ElementAt(i + 1).Value;
 
                     if ( y1*y2 >= 0 )
                     {
@@ -447,7 +470,10 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
                     }
                 }
             }
-            
+
+            //Logger.Log(".................... area = " + area);
+            //Logger.Log(".................... timeWindow = " + timeWindow);
+
             return (area / timeWindow);
         }
 
@@ -604,7 +630,8 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
                 {
                     //TODO: to be calculate according to the sample rate value
                     double time = gsrValuesReadTime - (channelValuesCount - i - 1) * (1000/samplerate);
-                    double gsrValue = (1 / channelValues[i])*4000;
+                    double gsrValue = (channelValues[i]);
+                    //double gsrValue = (1 / channelValues[i]) * 4000;
                     if (!currentChannelCoordinates.ContainsKey(time))
                     {
                         currentChannelCoordinates.Add(time, gsrValue);
@@ -628,7 +655,7 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
             JavaScriptSerializer js = new JavaScriptSerializer();
             string json = js.Serialize(statisticObject);
 
-            Logger.Log("jsonObject: " + json);
+           // Logger.Log("jsonObject: " + json);
 
             return json;
         }
@@ -681,6 +708,27 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
                 butterworthStatistics.SCLAchievedArousalLevel = GetTonicLevel(butterworthStatistics.TonicStatistics.MeanAmp);
             }
 
+            /*
+            Logger.Log("StartMMM........................");
+            if (medianFilterCoordinates.Count > 4) Logger.Log(medianFilterCoordinates.Values.ElementAt(medianFilterCoordinates.Count - 4).ToString());
+            if (medianFilterCoordinates.Count > 3) Logger.Log(medianFilterCoordinates.ElementAt(medianFilterCoordinates.Count - 3).ToString());
+            if (medianFilterCoordinates.Count > 2) Logger.Log(medianFilterCoordinates.ElementAt(medianFilterCoordinates.Count - 2).ToString());
+            if (medianFilterCoordinates.Count > 1) Logger.Log(medianFilterCoordinates.ElementAt(medianFilterCoordinates.Count - 1).ToString());
+            Logger.Log("EndMMM..........................");
+            Logger.Log("StartHigh........................");
+            if (butterworthFilterCoordinates.HighPassCoordinates.Count > 4) Logger.Log(butterworthFilterCoordinates.HighPassCoordinates.Values.ElementAt(butterworthFilterCoordinates.HighPassCoordinates.Count - 4).ToString());
+            if (butterworthFilterCoordinates.HighPassCoordinates.Count > 3) Logger.Log(butterworthFilterCoordinates.HighPassCoordinates.ElementAt(butterworthFilterCoordinates.HighPassCoordinates.Count - 3).ToString());
+            if (butterworthFilterCoordinates.HighPassCoordinates.Count > 2) Logger.Log(butterworthFilterCoordinates.HighPassCoordinates.ElementAt(butterworthFilterCoordinates.HighPassCoordinates.Count - 2).ToString());
+            if (butterworthFilterCoordinates.HighPassCoordinates.Count > 1) Logger.Log(butterworthFilterCoordinates.HighPassCoordinates.ElementAt(butterworthFilterCoordinates.HighPassCoordinates.Count - 1).ToString());
+            Logger.Log("EndHigh..........................");
+            Logger.Log("StartLow........................");
+            if (butterworthFilterCoordinates.LowPassCoordinates.Count > 4) Logger.Log(butterworthFilterCoordinates.LowPassCoordinates.Values.ElementAt(butterworthFilterCoordinates.LowPassCoordinates.Count - 4).ToString());
+            if (butterworthFilterCoordinates.LowPassCoordinates.Count > 3) Logger.Log(butterworthFilterCoordinates.LowPassCoordinates.ElementAt(butterworthFilterCoordinates.LowPassCoordinates.Count - 3).ToString());
+            if (butterworthFilterCoordinates.LowPassCoordinates.Count > 2) Logger.Log(butterworthFilterCoordinates.LowPassCoordinates.ElementAt(butterworthFilterCoordinates.LowPassCoordinates.Count - 2).ToString());
+            if (butterworthFilterCoordinates.LowPassCoordinates.Count > 1) Logger.Log(butterworthFilterCoordinates.LowPassCoordinates.ElementAt(butterworthFilterCoordinates.LowPassCoordinates.Count - 1).ToString());
+            Logger.Log("EndLow..........................");
+            */
+
             return butterworthStatistics;
         }
 
@@ -696,6 +744,15 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
 
         private ArousalStatistics GetInflectionPoints(Dictionary<double, double> coordinates)
         {
+            /*
+            Logger.Log("Start........................");
+            Logger.Log(coordinates.Values.ElementAt(coordinates.Count - 4).ToString());
+            Logger.Log(coordinates.Values.ElementAt(coordinates.Count - 3).ToString());
+            Logger.Log(coordinates.Values.ElementAt(coordinates.Count - 2).ToString());
+            Logger.Log(coordinates.Values.ElementAt(coordinates.Count - 1).ToString());
+            Logger.Log("End..........................");
+            */
+
             ISignalDeviceController signalController = new GSRHRDevice();
             int sampleRate = signalController.GetSignalSampleRate();
             return GetInflectionPoints(coordinates, sampleRate, defaultTimeWindow, TimeWindowMeasure.Seconds);
@@ -759,7 +816,7 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
             settings.AppSettings.Settings["CalibrationMaxTonicAmplitude"].Value = RoundString((Convert.ToDouble(
                 settings.AppSettings.Settings["MaxAverageTonicAmplitude"].Value) + deltaSCL).ToString());
 
-            settings.Save(ConfigurationSaveMode.Modified);
+            settings.Save(ConfigurationSaveMode.Minimal);
             ConfigurationManager.RefreshSection("appSettings");
 
             Logger.Log("Calibration data: " + GetJSONArousalStatistics(statistics));
@@ -823,8 +880,8 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
 
             settings.AppSettings.Settings["NumberParticipants"].Value = currentNumberParticipants.ToString();
 
-            settings.Save(ConfigurationSaveMode.Modified);
-            ConfigurationManager.RefreshSection("appSettings");
+            //settings.Save(ConfigurationSaveMode.Minimal);
+            //ConfigurationManager.RefreshSection("appSettings");
 
             //re-initialize min/max for arousal area and tonic amplitude
             settings.AppSettings.Settings["MaxArousalArea"].Value = "-1";
@@ -832,7 +889,7 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
             settings.AppSettings.Settings["MinTonicAmplitude"].Value = "100";
             settings.AppSettings.Settings["MaxTonicAmplitude"].Value = "-100";
 
-            settings.Save(ConfigurationSaveMode.Modified);
+            settings.Save(ConfigurationSaveMode.Minimal);
             ConfigurationManager.RefreshSection("appSettings");
 
             Logger.Log("New settings.NumberParticipants: " + GetAppValue("NumberParticipants"));
@@ -868,7 +925,7 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
             settings.AppSettings.Settings["MaxAverageTonicAmplitude"].Value = "3.12";
             settings.AppSettings.Settings["NumberParticipants"].Value = "1";
 
-            settings.Save(ConfigurationSaveMode.Modified);
+            settings.Save(ConfigurationSaveMode.Minimal);
             ConfigurationManager.RefreshSection("appSettings");
         }
     }

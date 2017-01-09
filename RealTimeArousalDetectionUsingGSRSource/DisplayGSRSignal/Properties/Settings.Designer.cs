@@ -22,17 +22,5 @@ namespace DisplayGSRSignal.Properties {
                 return defaultInstance;
             }
         }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("1")]
-        public string www {
-            get {
-                return ((string)(this["www"]));
-            }
-            set {
-                this["www"] = value;
-            }
-        }
     }
 }

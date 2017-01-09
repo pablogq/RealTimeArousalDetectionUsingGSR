@@ -8,7 +8,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>GSRProcessorDeviceIntegrator</RootNamespace>
-    <AssemblyName>GSRProcessorDeviceIntegrator</AssemblyName>
+    <AssemblyName>RealTimeArousalDetectionUsingGSRAsset</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -40,7 +40,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ArousalDetectionGSRDeviceIntegrator.cs" />
+    <Compile Include="RealTimeArousalDetectionUsingGSRAsset.cs" />
+    <Compile Include="RealTimeArousalDetectionAssetSettings.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -48,10 +49,21 @@
       <Project>{d44c2378-492f-4d69-823c-024edf41dd98}</Project>
       <Name>SignalDevice</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Logger\Logger.csproj">
+      <Project>{ba4e5dc4-5690-4e45-b690-786dac398e6a}</Project>
+      <Name>Logger</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\RageAssetManager\RageAssetManager.csproj">
+      <Project>{da8e9056-2e52-4029-81eb-a2d167614c47}</Project>
+      <Name>RageAssetManager</Name>
+    </ProjectReference>
     <ProjectReference Include="..\RealTimeArousalDetection\RealTimeArousalDetection.csproj">
       <Project>{2276781f-bee6-4ffa-9ecc-ec6f00880eca}</Project>
       <Name>RealTimeArousalDetection</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Resources\RealTimeArousalDetectionUsingGSRAsset.VersionAndDependencies.xml" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
