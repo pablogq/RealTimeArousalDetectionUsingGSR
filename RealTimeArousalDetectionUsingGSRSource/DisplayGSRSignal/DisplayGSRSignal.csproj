@@ -101,10 +101,6 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\SignalDevice\SignalDevice.csproj">
-      <Project>{d44c2378-492f-4d69-823c-024edf41dd98}</Project>
-      <Name>SignalDevice</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Logger\Logger.csproj">
       <Project>{ba4e5dc4-5690-4e45-b690-786dac398e6a}</Project>
       <Name>Logger</Name>
