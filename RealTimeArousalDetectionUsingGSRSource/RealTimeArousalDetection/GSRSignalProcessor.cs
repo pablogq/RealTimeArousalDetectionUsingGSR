@@ -833,6 +833,7 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
 
         public string EndOfMeasurement()
         {
+            /*
             Logger.Log("Received message for end of measurement");
             Logger.Log("Old settings.NumberParticipants: " + GetAppValue("NumberParticipants"));
             Logger.Log("Old settings.MinAverageArousalArea: " + GetAppValue("MinAverageArousalArea"));
@@ -845,6 +846,7 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
             Logger.Log("maxArousalArea: " + GetAppValue("MaxArousalArea"));
             Logger.Log("minTonicAmplitude: " + GetAppValue("MinTonicAmplitude"));
             Logger.Log("maxTonicAmplitude: " + GetAppValue("MaxTonicAmplitude"));
+            */
 
             int oldNumberParticipants = Convert.ToInt32(GetAppValue("NumberParticipants"));
             int currentNumberParticipants = oldNumberParticipants + 1;
@@ -891,13 +893,14 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
 
             settings.Save(ConfigurationSaveMode.Minimal);
             ConfigurationManager.RefreshSection("appSettings");
-
+            /*
             Logger.Log("New settings.NumberParticipants: " + GetAppValue("NumberParticipants"));
             Logger.Log("New settings.MinAverageArousalArea: " + GetAppValue("MinAverageArousalArea"));
             Logger.Log("New settings.MaxAverageArousalArea: " + GetAppValue("MaxAverageArousalArea"));
             Logger.Log("New settings.MinAverageTonicAmplitude: " + GetAppValue("MinAverageTonicAmplitude"));
             Logger.Log("New settings.MaxAverageTonicAmplitude: " + GetAppValue("MaxAverageTonicAmplitude"));
             Logger.Log("End...");
+            */
 
             return "The measurement process was ended.";
         }

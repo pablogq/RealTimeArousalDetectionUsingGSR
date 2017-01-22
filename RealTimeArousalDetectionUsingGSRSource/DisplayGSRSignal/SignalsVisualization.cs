@@ -49,7 +49,7 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
         public SignalsVisualization()
         {
             InitializeComponent();
-
+            
             if (DoesChartDisplay()) GSRChartDisplay();
             timer1.Tick += timer1_Tick;
         }
@@ -73,19 +73,19 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
                 signalController.OpenPort();
                 signalController.StartSignalsRecord();
             }
-
-            Logger.Log("Sample rate is: " + signalController.GetSignalSampleRateByConfig());
+            
+            //Logger.Log("Sample rate is: " + signalController.GetSignalSampleRateByConfig());
 
             timer1.Start();
-            if (DoesChartDisplay()) GSRChartDisplay();
+            if (DoesChartDisplay())  GSRChartDisplay();
 
-            // timer1.Tick += timer1_Tick;
+           // timer1.Tick += timer1_Tick;
         }
 
         private void GSRChartDisplay()
         {
             int p = CacheSignalData.GetAllForChannel(0) != null ? CacheSignalData.GetAllForChannel(0).Count : 0;
-            Logger.Log(DateTime.Now.Millisecond + ", " + p);
+            //Logger.Log(DateTime.Now.Millisecond + ", " + p);
 
             ChartClean();
 
@@ -196,7 +196,7 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
                 }
             }
 
-            if (butterworthChart.Series[butterworthHighPassLine].Points.Count > maxNumberOfPoints)
+            if(butterworthChart.Series[butterworthHighPassLine].Points.Count > maxNumberOfPoints)
             {
                 int exceedPoints = butterworthChart.Series[butterworthHighPassLine].Points.Count - maxNumberOfPoints;
                 for (int i = 0; i < exceedPoints; i++)
@@ -205,7 +205,7 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
                 }
             }
 
-            if (butterworthChart.Series[butterworthLowPassLine].Points.Count > maxNumberOfPoints)
+            if(butterworthChart.Series[butterworthLowPassLine].Points.Count > maxNumberOfPoints)
             {
                 int exceedPoints = butterworthChart.Series[butterworthLowPassLine].Points.Count - maxNumberOfPoints;
                 for (int i = 0; i < exceedPoints; i++)
@@ -214,7 +214,7 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
                 }
             }
 
-            if (gsrChart.Series[medianLineName].Points.Count > maxNumberOfPoints)
+            if(gsrChart.Series[medianLineName].Points.Count > maxNumberOfPoints)
             {
                 int exceedPoints = gsrChart.Series[medianLineName].Points.Count - maxNumberOfPoints;
                 for (int i = 0; i < exceedPoints; i++)
@@ -233,7 +233,7 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
 
             if (flagMarked)
             {
-                foreach (InflectionPoint currentPoint in inflectionPoints)
+                foreach(InflectionPoint currentPoint in inflectionPoints)
                 {
                     MarkInflectedPoint(chartAreaPoints, currentPoint.IndexOrigin, chart, seriesName);
                 }
@@ -246,7 +246,7 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
         {
             List<InflectionPoint> result = new List<InflectionPoint>();
             int i = 0;
-            foreach (DataPoint currentPoint in chartAreaPoints)
+            foreach(DataPoint currentPoint in chartAreaPoints)
             {
                 result.Add(new InflectionPoint(currentPoint.XValue, currentPoint.YValues[0], i));
                 i++;
@@ -258,19 +258,19 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
         private static Dictionary<double, double> TransformToDictionary(DataPointCollection chartAreaPoints)
         {
             Dictionary<double, double> result = new Dictionary<double, double>();
-            foreach (DataPoint currentPoint in chartAreaPoints)
+            foreach(DataPoint currentPoint in chartAreaPoints)
             {
                 result.Add(currentPoint.XValue, currentPoint.YValues[0]);
             }
 
-            return result.OrderBy(key => key.Key).ToDictionary((keyItem) => keyItem.Key, (valueItem) => valueItem.Value);
+            return result.OrderBy(key=>key.Key).ToDictionary((keyItem) => keyItem.Key, (valueItem) => valueItem.Value);
         }
 
         private static void MarkInflectedPoint(DataPointCollection chartPoints, int i, Chart chart, String seriesName)
         {
             chartPoints[i].MarkerStyle = MarkerStyle.Circle;
             chartPoints[i].MarkerColor = Color.Blue;
-            chartPoints[i].MarkerSize = 5;
+            chartPoints[i].MarkerSize = 5;            
         }
 
         private void SetMinMax(double coordinateKeyValue, String requiredMin, String requiredMax, String target)
@@ -299,7 +299,7 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
                 xxMinValue = yFilterMinValue;
             }
 
-            if (!String.IsNullOrEmpty(requiredMin) && !String.IsNullOrEmpty(requiredMax))
+            if(!String.IsNullOrEmpty(requiredMin) && !String.IsNullOrEmpty(requiredMax))
             {
                 xxMinValue = Convert.ToDouble(requiredMin);
                 xxMaxValue = Convert.ToDouble(requiredMax);
@@ -335,12 +335,12 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
             }
             else if ("xFilter".Equals(target))
             {
-                yFilterMaxValue = xxMaxValue;
-                yFilterMinValue = xxMinValue;
+                yFilterMaxValue = xxMaxValue  ;
+                yFilterMinValue = xxMinValue  ;
             }
             else if ("yFilter".Equals(target))
             {
-                yFilterMaxValue = xxMaxValue;
+                yFilterMaxValue = xxMaxValue ;
                 yFilterMinValue = xxMinValue;
             }
         }
@@ -353,7 +353,7 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
             // Set maximum values.
             chart.AxisX.Maximum = maxValue;
 
-            if (yMaxValue - yMinValue < 0.00005)
+            if(yMaxValue - yMinValue < 0.00005)
             {
                 yMinValue -= 0.00005;
             }
@@ -376,7 +376,7 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
             {
                 chart.AxisX.ScaleView.Zoom(maxValue - 500, maxValue);
             }
-
+            
             chart.AxisX.ScrollBar.IsPositionedInside = true;
 
             // disable zoom-reset button (only scrollbar's arrows are available)
@@ -409,7 +409,7 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
 
         private void timer1_Tick(object sender, EventArgs e)
         {
-            if (DoesChartDisplay()) GSRChartDisplay();
+            if(DoesChartDisplay()) GSRChartDisplay();
         }
 
         //Handle click on the Stop button
@@ -427,7 +427,7 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
             //timer1.Stop();
         }
 
-
+        
         private void MinYBtn_Click(object sender, EventArgs e)
         {
             double newYMin;

@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("SignalDevice")]
+[assembly: AssemblyTitle("GSRProcessorDeviceIntegrator")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Sofia University")]
-[assembly: AssemblyProduct("SignalDevice")]
+[assembly: AssemblyProduct("GSRProcessorDeviceIntegrator")]
 [assembly: AssemblyCopyright("Copyright ©  2016")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("d44c2378-492f-4d69-823c-024edf41dd98")]
+[assembly: Guid("50b7f5ae-9889-44f1-921a-3dc57ecabd8d")]
 
 // Version information for an assembly consists of the following four values:
 //

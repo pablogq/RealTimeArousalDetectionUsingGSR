@@ -66,6 +66,10 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\RealTimeArousalDetectionUsingGSR\HMDevice\HMDevice.vcxproj">
+      <Project>{c0c2f71f-ea5b-46c8-b295-83de2ab537d1}</Project>
+      <Name>HMDevice</Name>
+    </ProjectReference>
     <ProjectReference Include="..\RealTimeArousalDetectionUsingGSR\Logger\Logger.csproj">
       <Project>{ba4e5dc4-5690-4e45-b690-786dac398e6a}</Project>
       <Name>Logger</Name>

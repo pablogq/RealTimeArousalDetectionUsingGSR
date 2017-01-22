@@ -1,28 +1,41 @@
-﻿using SignalDevice.Properties;
+﻿/*
+ * Copyright 2016 Sofia University
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * This project has received funding from the European Union's Horizon
+ * 2020 research and innovation programme under grant agreement No 644187.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using SignalDevice.Properties;
 using System;
 using System.Configuration;
-using System.IO;
 using System.IO.Ports;
-//using SocketServer.Socket;
 
 namespace Assets.Rage.GSRAsset.SignalDevice
 {
     public class GSRHRDevice : ISignalDeviceController
     {
         // The main control for communicating through the RS-232 port
-        private SerialPort comport = SignalDeviceSerialPort.Instance;
+        //private SerialPort comport = SignalDeviceSerialPort.Instance;
         private Settings settings = Settings.Default;
-        private SignalDeviceUtils signalDeviceUtils;
+        //private SignalDeviceUtils signalDeviceUtils;
         private Configuration appConfig = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-        // Add TCP/IP socket for sending device data to remote applications
-        //private SocketListener socketListener = new SocketListener();
+        private int SampleRate = 0;
+        private HMDevice.HMDevice device =  new HMDevice.HMDevice();
 
         public GSRHRDevice()
         {
-            signalDeviceUtils = new SignalDeviceUtils();
-
-            // When data is recieved through the port, call this method
-            comport.DataReceived += new SerialDataReceivedEventHandler(signalDeviceUtils.PortDataReceiver);
+            //super();
         }
 
         public void GetSignalData(byte[] data)
@@ -32,138 +45,86 @@ namespace Assets.Rage.GSRAsset.SignalDevice
 
         public void OpenPort()
         {
-            bool error = false;
-
-            // If the port is open, close it.
-            if (comport.IsOpen) comport.Close();
-            else
-            {
-                SetSignalSettings();
-
-                try
-                {
-                    // Open the port
-                    comport.Open();
-                }
-                catch (UnauthorizedAccessException)
-                {
-                    error = true;
-                }
-                catch (IOException)
-                {
-                    error = true;
-                }
-                catch (ArgumentException)
-                {
-                    error = true;
-                }
-            }
-
-            // If the port is open, send data
-            if (comport.IsOpen)
-            {
-                signalDeviceUtils.SendData();
-            }
+            device.OpenPort();
         }
 
         public void SelectCOMPort(string portName)
         {
-            if(!comport.IsOpen) comport.PortName = portName;
+            if (!device.IsPortOpen())
+            {
+                //comport.PortName = portName;
+                device.SelectCOMPort(portName);
+            }
         }
 
         public void SetSignalSettings()
         {
-            // Set the port's settings
-            comport.BaudRate = settings.BaudRate;
-            comport.DataBits = settings.DataBits;
-            comport.StopBits = settings.StopBits;
-            comport.Parity = settings.Parity;
+            ConfigurationManager.RefreshSection("appSettings");
 
-            if (comport.PortName == null || comport.PortName.Length < 1)
-
-            {
-                comport.PortName = settings.PortName;
-            }
-
-            if (Convert.ToInt32(appConfig.AppSettings.Settings["Samplerate"].Value) < 1 && comport.IsOpen)
+            if (Convert.ToInt32(ConfigurationManager.AppSettings["Samplerate"]) < 1 && device.IsPortOpen())
             {
                 //default samplerate(speed/per second)
-                comport.Write("1");
+                device.SetSignalSamplerate(20);
             }
             else
             {
-                SetSignalSamplerate(appConfig.AppSettings.Settings["SamplerateLabel"].Value);
+                int sampleRateSetting = Int16.Parse(ConfigurationManager.AppSettings["Samplerate"]);
+                device.SetSignalSamplerate(sampleRateSetting);
+                SampleRate = Convert.ToInt32(sampleRateSetting);
             }
         }
 
         public int SetSignalSamplerate(string samplerate)
         {
-            if (comport.IsOpen)
-            {
-                comport.Write(appConfig.AppSettings.Settings["SamplerateLabel"].Value);
-                return 0;
-            }
-
+            device.SetSignalSamplerate(Int16.Parse(samplerate));
             return -1;
         }
 
         public void SetSignalSamplerate()
         {
-            if (comport.IsOpen) comport.Write(appConfig.AppSettings.Settings["SamplerateLabel"].Value);
+            int sampleRateSettings = Int16.Parse(ConfigurationManager.AppSettings["Samplerate"]);
+            ConfigurationManager.RefreshSection("appSettings");
+            SampleRate = sampleRateSettings;
+            device.SetSignalSamplerate(sampleRateSettings);
         }
 
         public int GetSignalSampleRate()
         {
-            return GetSamplerateByLabel(Convert.ToInt32(appConfig.AppSettings.Settings["Samplerate"].Value));
+            if(SampleRate > 0)
+            {
+                if (!(device.GetSignalSampleRate() > 0 && SampleRate == device.GetSignalSampleRate()))
+                {
+                    device.SetSignalSamplerate(SampleRate);
+                }
+
+                return SampleRate;
+            }
+            else
+            {
+                ConfigurationManager.RefreshSection("appSettings");
+                int sampleRateSetting = Convert.ToInt32(ConfigurationManager.AppSettings["Samplerate"]);
+                SampleRate = sampleRateSetting;
+                //if (!(device.GetSignalSampleRate() > 0))device.SetSignalSamplerate(sampleRateSetting);
+                return sampleRateSetting;
+            }
         }
 
-        public int GetSamplerateByLabel(int sampleRate)
+        public int GetSignalSampleRateByConfig()
         {
-            if (sampleRate == 2) return 2;
-            if (sampleRate == 3) return 4;
-            if (sampleRate == 4) return 5;
-            if (sampleRate == 5) return 10;
-            if (sampleRate == 6) return 20;
-            if (sampleRate == 7) return 25;
-            if (sampleRate == 8) return 50;
-            if (sampleRate == 9) return 100;
-
-            return 1;
-            
+            ConfigurationManager.RefreshSection("appSettings");            
+            return Convert.ToInt32(ConfigurationManager.AppSettings["Samplerate"]);
         }
 
         public int StartSignalsRecord()
         {
-            if (comport.IsOpen)
-            {
-                comport.Write(appConfig.AppSettings.Settings["SamplerateLabel"].Value);
-                comport.Write("S");
-                return 0;
-            }
-
-            return -1;
+            device.StartSignalsTransfer();
+            return 0;
         }
 
         public int StopSignalsRecord()
         {
-            if (comport.IsOpen)
-            {
-                comport.Write("E");
-                return 0;
-            }
-
-            return -1;
+            if(!"TestWithoutDevice".Equals(ConfigurationManager.AppSettings.Get("ApplicationMode"))) device.StopSignalsTransfer();
+            return 0;
         }
-/*
-        public void CloseSocket()
-        {
-            socketListener.CloseSocket();
-        }
-
-        public void StartSocketListening()
-        {
-            socketListener.Start();
-        }
-        */
     }
 }

@@ -98,9 +98,9 @@ namespace SignalDevice.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("Hex")]
-        public global::SignalDevice.DataMode DataMode {
+        public global::Assets.Rage.GSRAsset.SignalDevice.DataMode DataMode {
             get {
-                return ((global::SignalDevice.DataMode)(this["DataMode"]));
+                return ((global::Assets.Rage.GSRAsset.SignalDevice.DataMode)(this["DataMode"]));
             }
             set {
                 this["DataMode"] = value;

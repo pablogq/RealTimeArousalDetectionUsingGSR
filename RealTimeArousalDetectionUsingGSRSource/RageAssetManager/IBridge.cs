@@ -1,9 +1,9 @@
 ﻿/*
- * Copyright 2016 Sofia University
+ * Copyright 2016 Open University of the Netherlands
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
- * This project has received funding from the European Union's Horizon
+ * This project has received funding from the European Union’s Horizon
  * 2020 research and innovation programme under grant agreement No 644187.
  * You may obtain a copy of the License at
  *
@@ -15,31 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-namespace Assets.Rage.GSRAsset.SignalDevice
+namespace AssetPackage
 {
-    public enum DataMode { Text, Hex };
-
-    public interface ISignalDeviceController
+    /// <summary>
+    /// Interface for bridge.
+    /// </summary>
+    public interface IBridge
     {
-        void SelectCOMPort(string portName);
+        #region Other
 
-        int StartSignalsRecord();
+        //
 
-        int StopSignalsRecord();
-
-        void OpenPort();
-
-        int SetSignalSamplerate(string speed);
-
-        int GetSignalSampleRate();
-
-        int GetSignalSampleRateByConfig();
-
-        void SetSignalSettings();
-
-        void GetSignalData(byte[] data);
-
-        void SetSignalSamplerate();
+        #endregion Other
     }
 }

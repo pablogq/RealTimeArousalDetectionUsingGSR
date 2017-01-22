@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-public static class Logger 
+public static class Logger
     {
         private static LogBase logger = null;
 

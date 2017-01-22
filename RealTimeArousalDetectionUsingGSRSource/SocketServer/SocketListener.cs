@@ -54,12 +54,12 @@ namespace Assets.Rage.GSRAsset.SocketServer
                 // Enter the listening loop.
                 while (true)
                 {
-                    Logger.Log("Waiting for a connection... ");
+                    //Logger.Log("Waiting for a connection... ");
 
                     // Perform a blocking call to accept requests.
                     // You could also user server.AcceptSocket() here.
                     TcpClient client = server.AcceptTcpClient();
-                    Logger.Log("Connected!");
+                    //Logger.Log("Connected!");
 
                     data = null;
 
@@ -73,7 +73,7 @@ namespace Assets.Rage.GSRAsset.SocketServer
                     {
                         // Translate data bytes to a ASCII string.
                         data = System.Text.Encoding.ASCII.GetString(bytes, 0, i);
-                        Logger.Log("Text received from client: " + data);
+                        //Logger.Log("Text received from client: " + data);
 
                         StringBuilder response = new StringBuilder();
                         response.Append("Received at ");

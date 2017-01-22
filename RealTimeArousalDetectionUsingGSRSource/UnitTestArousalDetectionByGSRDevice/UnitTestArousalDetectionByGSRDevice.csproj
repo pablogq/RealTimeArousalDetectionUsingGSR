@@ -58,9 +58,9 @@
       <Project>{d44c2378-492f-4d69-823c-024edf41dd98}</Project>
       <Name>SignalDevice</Name>
     </ProjectReference>
-    <ProjectReference Include="..\GSRProcessorDeviceIntegrator\RealTimeArousalDetectionUsingGSRAsset.csproj">
+    <ProjectReference Include="..\GSRProcessorDeviceIntegrator\GSRProcessorDeviceIntegrator.csproj">
       <Project>{50b7f5ae-9889-44f1-921a-3dc57ecabd8d}</Project>
-      <Name>RealTimeArousalDetectionUsingGSRAsset</Name>
+      <Name>GSRProcessorDeviceIntegrator</Name>
     </ProjectReference>
     <ProjectReference Include="..\RageAssetManager\RageAssetManager.csproj">
       <Project>{da8e9056-2e52-4029-81eb-a2d167614c47}</Project>

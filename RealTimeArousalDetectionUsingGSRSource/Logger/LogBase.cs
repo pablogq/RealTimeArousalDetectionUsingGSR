@@ -16,11 +16,7 @@
  * limitations under the License.
  */
 
-
-using AssetPackage;
-
-
-public abstract class LogBase : BaseAsset
+    public abstract class LogBase
 
     {
         protected readonly object lockObj = new object();
