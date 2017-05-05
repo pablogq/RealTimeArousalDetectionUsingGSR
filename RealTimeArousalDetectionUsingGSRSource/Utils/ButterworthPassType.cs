@@ -18,13 +18,11 @@
 
 namespace Assets.Rage.GSRAsset.Utils
 {
-    public enum InflectionLineDirection
+    public enum ButterworthPassType
     {
-        //arousal decrease
-        Positive,
-        //arousal increase
-        Negative,
-        //arousal the same
-        Neutral
+        //phasic signal
+        Highpass,
+        //tonic signal
+        Lowpass
     }
 }

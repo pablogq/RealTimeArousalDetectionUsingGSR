@@ -19,7 +19,7 @@
 using System;
 using System.Text;
 
-namespace Assets.Rage.GSRAsset.SignalProcessor
+namespace Assets.Rage.GSRAsset.Utils
 {
     public class TonicStatistics
     {
@@ -97,15 +97,11 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
         public override string ToString()
         {
             StringBuilder str = new StringBuilder();
-
-            Logger.Log("Slope1: " + slope);
             str.Append("Slope: " + slope + ": \n");
-            Logger.Log("Slope2: " + slope);
             str.Append("Minimum value: " + minAmp + "\n");
             str.Append("Maximum value: " + maxAmp + "\n");
             str.Append("Mean value: " + meanAmp + "\n");
             str.Append("Standard deviation: " + stdDeviation + "\n");
-            //str.Append("Tonic level: " + sclAchievedArousalLevel + "\n");
 
             return str.ToString();
         }

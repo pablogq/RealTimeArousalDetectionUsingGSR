@@ -9,5 +9,6 @@
   <dependencies>
     <depends minVersion="1.2.3">RealTimeArousalDetection</depends>
     <depends minVersion="1.2.3">SignalDevice</depends>
+    <depends minVersion="1.2.3">Utils</depends>
   </dependencies>
 </version>

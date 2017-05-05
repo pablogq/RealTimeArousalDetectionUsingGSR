@@ -11,6 +11,7 @@
     <AssemblyName>SignalDevice</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -21,6 +22,8 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <UseVSHostingProcess>true</UseVSHostingProcess>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -50,30 +53,21 @@
     <Compile Include="ISignalDeviceController.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="GSRHRDevice.cs" />
-    <Compile Include="Properties\Settings.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-      <DependentUpon>Settings.settings</DependentUpon>
-    </Compile>
     <Compile Include="SignalDeviceSerialPort.cs" />
-    <Compile Include="SignalDeviceUtils.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="app.config" />
-    <None Include="Properties\Settings.settings">
-      <Generator>PublicSettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\HMDevice\HMDevice.vcxproj">
       <Project>{c0c2f71f-ea5b-46c8-b295-83de2ab537d1}</Project>
       <Name>HMDevice</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Logger\Logger.csproj">
+    <ProjectReference Include="..\Utils\Utils.csproj">
       <Project>{ba4e5dc4-5690-4e45-b690-786dac398e6a}</Project>
-      <Name>Logger</Name>
+      <Name>Utils</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <Content Include="Resources\SignalDevice.VersionAndDependencies.xml" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

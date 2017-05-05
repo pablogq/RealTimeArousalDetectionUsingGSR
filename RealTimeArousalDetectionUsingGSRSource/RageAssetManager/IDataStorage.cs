@@ -80,6 +80,7 @@ namespace AssetPackage
         /// <param name="fileId">   The file identifier to delete. </param>
         /// <param name="fileData"> Information describing the file. </param>
         void Save(String fileId, String fileData);
+        string GetPath(string source);
 
         #endregion Methods
     }

@@ -30,15 +30,15 @@ namespace Assets.Rage.GSRAsset.SignalDevice
 
         void OpenPort();
 
-        int SetSignalSamplerate(string speed);
+        void OpenPort(int sampleRate);
+
+        int SetSignalSamplerate(int speed);
 
         int GetSignalSampleRate();
 
         int GetSignalSampleRateByConfig();
 
         void SetSignalSettings();
-
-        void GetSignalData(byte[] data);
 
         void SetSignalSamplerate();
     }

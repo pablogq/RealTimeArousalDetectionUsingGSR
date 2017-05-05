@@ -19,7 +19,7 @@
 using System;
 using System.Text;
 
-namespace Assets.Rage.GSRAsset.SignalProcessor
+namespace Assets.Rage.GSRAsset.Utils
 {
     public class ArousalFeature
     {

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-namespace Assets.Rage.GSRAsset.SignalProcessor
+namespace Assets.Rage.GSRAsset.Utils
 {
     public enum ExtremaType
     {

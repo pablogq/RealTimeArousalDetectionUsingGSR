@@ -16,173 +16,243 @@
  * limitations under the License.
  */
 
-using Assets.Rage.GSRAsset.SignalProcessor;
-using Assets.Rage.GSRAsset.SignalDevice;
-using Assets.Rage.GSRAsset.SocketServer;
+using Assets.Rage.GSRAsset.Utils;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
-using System.Configuration;
+using System.Globalization;
+using Assets.Rage.GSRAsset.Integrator;
+using AssetManagerPackage;
+using AssetPackage;
 
 namespace Assets.Rage.GSRAsset.DisplayGSRSignal
 {
     public partial class SignalsVisualization : Form
     {
-        ISignalDeviceController signalController = new GSRHRDevice();
-        GSRSignalProcessor gsrHandler = new GSRSignalProcessor();
-        private SocketListener socketListener = new SocketListener();
-
-        private string medianLineName = "De-noised filter";
+        private const int maximumNumberOfChartPoints = 200;
+        private string rawSignalLineName = "Raw signal";
+        private string medianLineName = "Denoised signal";
         private string butterworthLowPassLine = "Tonic line";
         private string butterworthHighPassLine = "Phasic line";
-        private double butterworthTonicPhasicFrequency = 0.05;
-        private double xMaxValue = 0.0;
-        private double yMaxValue = 0.0;
-        private double yFilterMaxValue = 0.0;
-        private double xMinValue = 0.0;
-        private double yMinValue = 0.0;
-        private double yFilterMinValue = 0.0;
+
+        private List<double> positionsX = new List<double>();
+        private List<double> positionsY = new List<double>();
+        private List<double> butterworthPositionsX = new List<double>();
+        private List<double> butterworthPositionsY = new List<double>();
+        private RealTimeArousalDetectionUsingGSRAsset gsrAsset;
+        private RealTimeArousalDetectionAssetSettings settings;
+        private ILog logger;
 
         public SignalsVisualization()
         {
-            InitializeComponent();
-            
-            if (DoesChartDisplay()) GSRChartDisplay();
-            timer1.Tick += timer1_Tick;
+            AssetManager.Instance.Bridge = new Bridge();
+            gsrAsset = RealTimeArousalDetectionUsingGSRAsset.Instance;
+            settings = (RealTimeArousalDetectionAssetSettings)gsrAsset.Settings;
+            logger = (ILog)AssetManager.Instance.Bridge;
+
+            if ("BackgroundMode".Equals(settings.FormMode))
+            {
+                this.WindowState = FormWindowState.Minimized;
+                Load += new EventHandler(Form_Load);
+            }
+            else
+            {
+                InitializeComponent();
+                lblErrors.Text = "";
+
+                StartGSRDevice();
+                if (DoesChartDisplay())
+                {
+                    GSRChartDisplay();
+                    timer1.Tick += timer1_Tick;
+                }
+
+                StartSocket();
+                lblSampleRateValue.Text = !"TestWithoutDevice".Equals(settings.ApplicationMode) ? gsrAsset.GetSignalSampleRate().ToString() : "0";
+                lblSocketAddressValue.Text = settings.SocketIPAddress + ":" + settings.SocketPort;
+                lblTimeWindowValue.Text = settings.DefaultTimeWindow + " s";
+                btnSocketLight.BackColor = Color.GreenYellow;
+
+                this.MouseWheel += new System.Windows.Forms.MouseEventHandler(this.gsrChart_MouseWheel);
+            }
         }
 
+        private void Form_Load(object sender, EventArgs e)
+        {
+            StartGSRDevice();
+            StartSocket();
+
+            this.Hide();
+        }
+
+        private void gsrChart_MouseWheel(object sender, MouseEventArgs e)
+        {
+            try
+            {
+                if (e.Delta < 0)
+                {
+                    positionsX.RemoveAt(positionsX.Count - 1);
+                    positionsX.RemoveAt(positionsX.Count - 1);
+
+                    if (positionsX.Count < 2)
+                    {
+                        gsrChart.ChartAreas[0].AxisX.ScaleView.ZoomReset();
+                        butterworthChart.ChartAreas[0].AxisX.ScaleView.ZoomReset();
+                    }
+                    else
+                    {
+                        gsrChart.ChartAreas[0].AxisX.ScaleView.Zoom(positionsX.ElementAt(positionsX.Count - 2), positionsX.ElementAt(positionsX.Count - 1));
+                        butterworthChart.ChartAreas[0].AxisX.ScaleView.Zoom(positionsX.ElementAt(positionsX.Count - 2), positionsX.ElementAt(positionsX.Count - 1));
+                    }
+
+                    positionsY.RemoveAt(positionsY.Count - 1);
+                    positionsY.RemoveAt(positionsY.Count - 1);
+
+                    if (positionsY.Count < 2) gsrChart.ChartAreas[0].AxisY.ScaleView.ZoomReset();
+                    else gsrChart.ChartAreas[0].AxisY.ScaleView.Zoom(positionsY.ElementAt(positionsY.Count - 2), positionsY.ElementAt(positionsY.Count - 1));
+                }
+
+                if (e.Delta > 0)
+                {
+                    double xMin = gsrChart.ChartAreas[0].AxisX.ScaleView.ViewMinimum;
+                    double xMax = gsrChart.ChartAreas[0].AxisX.ScaleView.ViewMaximum;
+                    double yMin = gsrChart.ChartAreas[0].AxisY.ScaleView.ViewMinimum;
+                    double yMax = gsrChart.ChartAreas[0].AxisY.ScaleView.ViewMaximum;
+
+                    double posXStart = gsrChart.ChartAreas[0].AxisX.PixelPositionToValue(e.Location.X) - (xMax - xMin) / 4;
+                    double posXFinish = gsrChart.ChartAreas[0].AxisX.PixelPositionToValue(e.Location.X) + (xMax - xMin) / 4;
+
+                    positionsX.Add(posXStart);
+                    positionsX.Add(posXFinish);
+
+                    double posYStart = gsrChart.ChartAreas[0].AxisY.PixelPositionToValue(e.Location.Y) - (yMax - yMin) / 4;
+                    double posYFinish = gsrChart.ChartAreas[0].AxisY.PixelPositionToValue(e.Location.Y) + (yMax - yMin) / 4;
+
+                    positionsY.Add(posYStart);
+                    positionsY.Add(posYFinish);
+
+                    gsrChart.ChartAreas[0].AxisX.ScaleView.Zoom(posXStart, posXFinish);
+                    butterworthChart.ChartAreas[0].AxisX.ScaleView.Zoom(posXStart, posXFinish);
+                    gsrChart.ChartAreas[0].AxisY.ScaleView.Zoom(posYStart, posYFinish);
+                }
+            }
+            catch (Exception exc)
+            {
+                logger.Log(Severity.Error, exc.ToString());
+            }
+        }
+
+        void StartGSRDevice()
+        {
+            string lblErrorString = (!"BackgroundMode".Equals(settings.FormMode)) ? lblErrors.Text.ToString() : "";
+            ErrorStartSignalDevice startingResult = gsrAsset.StartGSRDevice(lblErrorString);
+            if(startingResult.Exception == null)
+            {
+                if (!"BackgroundMode".Equals(settings.FormMode)) lblErrors.Text = startingResult.ErrorContent;
+            }
+            else if (startingResult.Exception != null)
+            {
+                if (!"BackgroundMode".Equals(settings.FormMode)) lblErrors.Text = startingResult.ErrorContent;
+                logger.Log(Severity.Error, PrintException(startingResult.Exception));
+            }
+        }
+
+        private static string PrintException(Exception e)
+        {
+            return e != null ? e.ToString() : "";
+        }
 
         private static bool DoesChartDisplay()
         {
-            List<double> channelData = CacheSignalData.GetAllForChannel(0);
-            //return false;// Cache.GetAllForChannel(0) != null && Cache.GetAllForChannel(0).Count > 0;
+            List<SignalDataByTime> channelData = CacheSignalData.GetCacheData().ToList();
+
             return channelData != null && channelData.Count > 0;
         }
 
         //Handle click on the Refresh button
         private void refresh_Click(object sender, EventArgs e)
         {
-            //RecordPauseDeviceSignal();
-
-            if (!"TestWithoutDevice".Equals(ConfigurationManager.AppSettings.Get("ApplicationMode")))
+            if (!"TestWithoutDevice".Equals(settings.ApplicationMode))
             {
-                signalController.SelectCOMPort(ConfigurationManager.AppSettings.Get("COMPort"));
-                signalController.OpenPort();
-                signalController.StartSignalsRecord();
+                StartGSRDevice();
             }
-            
-            //Logger.Log("Sample rate is: " + signalController.GetSignalSampleRateByConfig());
 
-            timer1.Start();
-            if (DoesChartDisplay())  GSRChartDisplay();
+            if (DoesChartDisplay())
+            {
+                timer1.Start();
+                GSRChartDisplay();
+            }
 
-           // timer1.Tick += timer1_Tick;
         }
 
         private void GSRChartDisplay()
         {
-            int p = CacheSignalData.GetAllForChannel(0) != null ? CacheSignalData.GetAllForChannel(0).Count : 0;
-            //Logger.Log(DateTime.Now.Millisecond + ", " + p);
-
             ChartClean();
 
-            ChartArea chart = gsrChart.ChartAreas[0];
-            ChartArea filterChart = butterworthChart.ChartAreas[0];
-            int sampleRate = signalController.GetSignalSampleRate();
+            gsrChart.Series[0].XValueType = ChartValueType.DateTime;
+            butterworthChart.Series[0].XValueType = ChartValueType.DateTime;
 
-            Dictionary<int, List<double>> channelsValues = gsrHandler.ExtractChannelsValues();
-            gsrHandler.FillCoordinates(sampleRate);
-            Dictionary<int, Dictionary<double, double>> medianFilterCoordinates = gsrHandler.GetMedianFilterPoints(gsrHandler.coordinates);
-            FilterButterworth highPassFilter = new FilterButterworth(butterworthTonicPhasicFrequency, sampleRate, ButterworthPassType.Highpass);
-            FilterButterworth lowPassFilter = new FilterButterworth(butterworthTonicPhasicFrequency, sampleRate, ButterworthPassType.Lowpass);
-
-            xMaxValue = 0.0;
-            xMinValue = 0.0;
-            yMaxValue = 0.0;
-            yMinValue = 0.0;
-
-            yFilterMaxValue = 0.0;
-            yFilterMinValue = 0.0;
+            List<SignalDataByTime> signalValues = gsrAsset.GetSignalData();
+            SignalDataByTime[] signalValuesCopy = new SignalDataByTime[signalValues.Count];
+            signalValues.CopyTo(signalValuesCopy);
+            SignalDataByTime[] medianFilterCoordinates = gsrAsset.GetMedianFilterValues(signalValuesCopy);
 
             // Adjust Y & X axis scale
             gsrChart.ResetAutoValues();
 
-            int numPoints = 0;
-            foreach (KeyValuePair<int, Dictionary<double, double>> channelCoordinates in gsrHandler.coordinates)
+            int i = 0;
+            foreach (SignalDataByTime coordinate in signalValues)
             {
-                string currentChannel = "GSR " + (channelCoordinates.Key + 1).ToString();
+                DateTime coordinateDateTime = DateFromMS((long)coordinate.Time);
+                String xAxisLabel = coordinateDateTime.ToString("HH:mm:ss:fff", CultureInfo.InvariantCulture);
 
-                if (channelCoordinates.Value == null && channelCoordinates.Value.Count == 0)
-                {
-                    gsrChart.Series[currentChannel].IsVisibleInLegend = false;
-                }
-
-                numPoints = channelsValues.Values.Count;
-                Dictionary<double, double> coordinatesValues = SortDictionaryByKey(channelCoordinates.Value);
-                foreach (KeyValuePair<double, double> coordinate in coordinatesValues)
-                {
-                    SetMinMax(coordinate.Key, null, null, "x");
-                    SetMinMax(coordinate.Value, MinYTxtBox.Text, MaxYTxtBox.Text, "y");
-
-                    gsrChart.Series[currentChannel].Points.AddXY(coordinate.Key, coordinate.Value);
-                }
+                gsrChart.Series[rawSignalLineName].Points.AddXY(xAxisLabel, coordinate.SignalValue);
 
                 if (medianFilterCoordinates != null)
                 {
-                    Dictionary<double, double> medianCoordinatesValues = medianFilterCoordinates.Values.ElementAt(channelCoordinates.Key);
-                    foreach (KeyValuePair<double, double> medianCoordinate in medianCoordinatesValues)
-                    {
-
-                        double medianValue = medianCoordinate.Value;
-
-                        double highPassValue = highPassFilter.GetFilterValue(medianValue);
-                        double lowPassValue = lowPassFilter.GetFilterValue(medianValue);
-
-                        SetMinMax(highPassValue, null, null, "xFilter");
-                        SetMinMax(lowPassValue, MinYFltTxtBox.Text, MaxYFltTxtBox.Text, "yFilter");
-
-                        gsrChart.Series[medianLineName].Points.AddXY(medianCoordinate.Key, medianValue);
-                        butterworthChart.Series[butterworthLowPassLine].Points.AddXY(medianCoordinate.Key, lowPassValue);
-                        butterworthChart.Series[butterworthHighPassLine].Points.AddXY(medianCoordinate.Key, highPassValue);
-                    }
+                    DateTime medianCoordinateDateTime = new DateTime((long)medianFilterCoordinates[i].Time * 1000, DateTimeKind.Local);
+                    String medianXAxisLabel = medianCoordinateDateTime.ToString("HH:mm:ss:fff", CultureInfo.InvariantCulture);
+                    double medianValue = medianFilterCoordinates[i].SignalValue;
+                    gsrChart.Series[medianLineName].Points.AddXY(medianXAxisLabel, medianValue);
+                    i++;
                 }
+
+                butterworthChart.Series[butterworthLowPassLine].Points.AddXY(xAxisLabel, coordinate.LowPassValue);
+                butterworthChart.Series[butterworthHighPassLine].Points.AddXY(xAxisLabel, coordinate.HighPassValue);
             }
 
-            /*
-            ArousalStatistics gsrArousalStatistics = GetInflectionPoints(gsrChart, gsrChart.Series[medianLineName].Points, medianLineName, true);
-            ArousalInfo.Text = (gsrArousalStatistics != null) ? gsrArousalStatistics.ToString("De-noised filter") : "";
-            ArousalStatistics butterworthStatistics = GetInflectionPoints(butterworthChart, butterworthChart.Series[butterworthHighPassLine].Points, butterworthHighPassLine, true);
-            if(butterworthStatistics != null) butterworthStatistics.TonicStatistics = gsrHandler.GetTonicStatistics(TransformToDictionary(butterworthChart.Series[butterworthLowPassLine].Points));
+            RemoveOldPoints(maximumNumberOfChartPoints*5);
 
-            JavaScriptSerializer js = new JavaScriptSerializer();
-            string json = js.Serialize(butterworthStatistics);
+            SetChartDetail(gsrChart, "Time", "GSR");
+            SetChartDetail(butterworthChart, "Time", "Butterworth");
 
-            Logger.Log("jsonObject: " + json);
-
-            ArousalInfoButterworth.Text = (butterworthStatistics != null) ? butterworthStatistics.ToString("Phasic line") : "";
-            */
-
-            //remove old points
-            //RemoveOldPoints(2500);
-
-            if (gsrHandler.coordinates.Count > 5) gsrChart.DataManipulator.FinancialFormula(FinancialFormula.ExponentialMovingAverage, "5", "GSR 1:Y", "Moving Average:Y");
-
-            //if(number == 1)
-            //{
-            SetChartDetail(chart, xMaxValue, xMinValue, yMaxValue, yMinValue);
-            SetChartDetail(filterChart, xMaxValue, xMinValue, yFilterMaxValue, yFilterMinValue);
-            //}
-
-            //gsrChart.Invalidate();
-            //butterworthChart.Invalidate();
         }
 
-        private static Dictionary<double, double> SortDictionaryByKey(Dictionary<double, double> dictionary)
+        private DateTime DateFromMS(long milliSec)
         {
-            return dictionary.OrderBy(key => key.Key).ToDictionary((keyItem) => keyItem.Key, (valueItem) => valueItem.Value);
+            DateTime startTime = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+            TimeSpan time = TimeSpan.FromMilliseconds(milliSec);
+            return startTime.Add(time).ToLocalTime();
+        }
+
+        private static void SetChartDetail(Chart chart, string titleXAxis, string titleYAxis)
+        {
+            chart.ChartAreas[0].AxisX.Title = titleXAxis;
+            chart.ChartAreas[0].AxisY.Title = titleYAxis;
+
+            chart.ChartAreas[0].AxisX.ScaleView.Zoomable = true;
+            chart.ChartAreas[0].AxisY.ScaleView.Zoomable = true;
+
+            if (chart.Series[0].Points.Count > maximumNumberOfChartPoints)
+            {
+                chart.ChartAreas[0].AxisX.ScaleView.Zoom(chart.Series[0].Points[chart.Series[0].Points.Count - 100].XValue, chart.Series[0].Points[chart.Series[0].Points.Count - 1].XValue);
+                chart.ChartAreas[0].AxisX.ScaleView.Position = chart.Series[0].Points.Count - maximumNumberOfChartPoints;
+                chart.ChartAreas[0].AxisX.ScaleView.Size = maximumNumberOfChartPoints;
+            }
         }
 
         private void RemoveOldPoints(int maxNumberOfPoints)
@@ -196,7 +266,7 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
                 }
             }
 
-            if(butterworthChart.Series[butterworthHighPassLine].Points.Count > maxNumberOfPoints)
+            if (butterworthChart.Series[butterworthHighPassLine].Points.Count > maxNumberOfPoints)
             {
                 int exceedPoints = butterworthChart.Series[butterworthHighPassLine].Points.Count - maxNumberOfPoints;
                 for (int i = 0; i < exceedPoints; i++)
@@ -205,7 +275,7 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
                 }
             }
 
-            if(butterworthChart.Series[butterworthLowPassLine].Points.Count > maxNumberOfPoints)
+            if (butterworthChart.Series[butterworthLowPassLine].Points.Count > maxNumberOfPoints)
             {
                 int exceedPoints = butterworthChart.Series[butterworthLowPassLine].Points.Count - maxNumberOfPoints;
                 for (int i = 0; i < exceedPoints; i++)
@@ -214,183 +284,13 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
                 }
             }
 
-            if(gsrChart.Series[medianLineName].Points.Count > maxNumberOfPoints)
+            if (gsrChart.Series[medianLineName].Points.Count > maxNumberOfPoints)
             {
                 int exceedPoints = gsrChart.Series[medianLineName].Points.Count - maxNumberOfPoints;
                 for (int i = 0; i < exceedPoints; i++)
                 {
                     gsrChart.Series[medianLineName].Points.RemoveAt(0);
                 }
-            }
-        }
-
-        private ArousalStatistics GetInflectionPoints(Chart chart, DataPointCollection chartAreaPoints, String seriesName, bool flagMarked)
-        {
-            GSRSignalProcessor gsrHandler = new GSRSignalProcessor();
-            List<InflectionPoint> chartPointsCoordinates = TransformToCoordinatePoints(chartAreaPoints);
-            InflectionLine inflLineHandler = new InflectionLine();
-            List<InflectionPoint> inflectionPoints = inflLineHandler.GetInflectionPoints(chartPointsCoordinates);
-
-            if (flagMarked)
-            {
-                foreach(InflectionPoint currentPoint in inflectionPoints)
-                {
-                    MarkInflectedPoint(chartAreaPoints, currentPoint.IndexOrigin, chart, seriesName);
-                }
-            }
-
-            return gsrHandler.GetArousalStatistics(TransformToDictionary(chartAreaPoints));
-        }
-
-        private static List<InflectionPoint> TransformToCoordinatePoints(DataPointCollection chartAreaPoints)
-        {
-            List<InflectionPoint> result = new List<InflectionPoint>();
-            int i = 0;
-            foreach(DataPoint currentPoint in chartAreaPoints)
-            {
-                result.Add(new InflectionPoint(currentPoint.XValue, currentPoint.YValues[0], i));
-                i++;
-            }
-
-            return result;
-        }
-
-        private static Dictionary<double, double> TransformToDictionary(DataPointCollection chartAreaPoints)
-        {
-            Dictionary<double, double> result = new Dictionary<double, double>();
-            foreach(DataPoint currentPoint in chartAreaPoints)
-            {
-                result.Add(currentPoint.XValue, currentPoint.YValues[0]);
-            }
-
-            return result.OrderBy(key=>key.Key).ToDictionary((keyItem) => keyItem.Key, (valueItem) => valueItem.Value);
-        }
-
-        private static void MarkInflectedPoint(DataPointCollection chartPoints, int i, Chart chart, String seriesName)
-        {
-            chartPoints[i].MarkerStyle = MarkerStyle.Circle;
-            chartPoints[i].MarkerColor = Color.Blue;
-            chartPoints[i].MarkerSize = 5;            
-        }
-
-        private void SetMinMax(double coordinateKeyValue, String requiredMin, String requiredMax, String target)
-        {
-            double xxMaxValue = 0.0;
-            double xxMinValue = 0.0;
-
-            if ("x".Equals(target))
-            {
-                xxMaxValue = xMaxValue;
-                xxMinValue = xMinValue;
-            }
-            else if ("y".Equals(target))
-            {
-                xxMaxValue = yMaxValue;
-                xxMinValue = yMinValue;
-            }
-            else if ("xFilter".Equals(target))
-            {
-                xxMaxValue = yFilterMaxValue;
-                xxMinValue = yFilterMinValue;
-            }
-            else if ("yFilter".Equals(target))
-            {
-                xxMaxValue = yFilterMaxValue;
-                xxMinValue = yFilterMinValue;
-            }
-
-            if(!String.IsNullOrEmpty(requiredMin) && !String.IsNullOrEmpty(requiredMax))
-            {
-                xxMinValue = Convert.ToDouble(requiredMin);
-                xxMaxValue = Convert.ToDouble(requiredMax);
-            }
-            else if (xxMaxValue.Equals(0.0) && xxMinValue.Equals(0.0))
-            {
-                xxMaxValue = coordinateKeyValue;
-                xxMinValue = coordinateKeyValue;
-            }
-            else
-            {
-                if (xxMaxValue.CompareTo(coordinateKeyValue) < 0)
-                {
-                    xxMaxValue = coordinateKeyValue;
-                }
-
-
-                if (xxMinValue.CompareTo(coordinateKeyValue) > 0)
-                {
-                    xxMinValue = coordinateKeyValue;
-                }
-            }
-
-            if ("x".Equals(target))
-            {
-                xMaxValue = xxMaxValue;
-                xMinValue = xxMinValue;
-            }
-            else if ("y".Equals(target))
-            {
-                yMaxValue = xxMaxValue;
-                yMinValue = xxMinValue;
-            }
-            else if ("xFilter".Equals(target))
-            {
-                yFilterMaxValue = xxMaxValue  ;
-                yFilterMinValue = xxMinValue  ;
-            }
-            else if ("yFilter".Equals(target))
-            {
-                yFilterMaxValue = xxMaxValue ;
-                yFilterMinValue = xxMinValue;
-            }
-        }
-
-        private static void SetChartDetail(ChartArea chart, double maxValue, double minValue, double yMaxValue, double yMinValue)
-        {
-            chart.AxisX.Title = "Time";
-            chart.AxisY.Title = "GSR";
-
-            // Set maximum values.
-            chart.AxisX.Maximum = maxValue;
-
-            if(yMaxValue - yMinValue < 0.00005)
-            {
-                yMinValue -= 0.00005;
-            }
-
-            chart.AxisY.Maximum = yMaxValue;
-            chart.AxisY.Minimum = yMinValue;
-
-            // enable autoscroll
-            chart.CursorX.AutoScroll = true;
-
-            //zoom to [minValue, minvalue+numberOfVisiblePoints]
-            chart.AxisX.ScaleView.Zoomable = true;
-            chart.AxisX.ScaleView.SizeType = DateTimeIntervalType.Number;
-
-            if (maxValue.CompareTo((double)500.0) < 0)
-            {
-                chart.AxisX.ScaleView.Zoom(minValue, maxValue);
-            }
-            else
-            {
-                chart.AxisX.ScaleView.Zoom(maxValue - 500, maxValue);
-            }
-            
-            chart.AxisX.ScrollBar.IsPositionedInside = true;
-
-            // disable zoom-reset button (only scrollbar's arrows are available)
-            chart.AxisX.ScrollBar.ButtonStyle = ScrollBarButtonStyles.SmallScroll;
-
-            // set scrollbar small change 
-            if (maxValue.CompareTo((double)500.0) < 0)
-            {
-                chart.AxisX.ScaleView.SmallScrollSize = 10;
-
-            }
-            else
-            {
-                chart.AxisX.ScaleView.SmallScrollSize = 500;
             }
         }
 
@@ -409,43 +309,40 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
 
         private void timer1_Tick(object sender, EventArgs e)
         {
-            if(DoesChartDisplay()) GSRChartDisplay();
+            if (DoesChartDisplay()) GSRChartDisplay();
+        }
+
+        private void activeChart_ScrollerMove(object sender, ViewEventArgs e)
+        {
+            ChartArea activeChartArea = e.ChartArea;
+            ChartArea inactiveChartArea = (activeChartArea == gsrChart.ChartAreas[0]) ? butterworthChart.ChartAreas[0] : gsrChart.ChartAreas[0];
+
+            if (AxisName.X.Equals(e.Axis.AxisName))
+            {
+                inactiveChartArea.AxisX.ScaleView.Position = e.NewPosition;
+                inactiveChartArea.AxisX.ScaleView.Size = e.NewSize;
+                inactiveChartArea.AxisX.ScaleView.SizeType = e.NewSizeType;
+            }
         }
 
         //Handle click on the Stop button
         private void stop_Click(object sender, EventArgs e)
         {
-            signalController.StopSignalsRecord();
-
-            //GSRSignalProcessor gsrHandler = new GSRSignalProcessor();
-
-            //ArousalInfoButterworth.Text = gsrHandler.GetJSONArousalStatistics( gsrHandler.GetArousalStatisticsByMedianFilter(TransformToDictionary(gsrChart.Series[medianLineName].Points), -1.0, TimeWindowMeasure.Seconds) );
-
-            //ArousalInfoButterworth.Text = (butterworthStatistics != null) ? butterworthStatistics.ToString("Phasic line") : "";
-
-            //gsrHandler.EndMeasurment();
-            //timer1.Stop();
-        }
-
-        
-        private void MinYBtn_Click(object sender, EventArgs e)
-        {
-            double newYMin;
-            if (Double.TryParse(MinYTxtBox.Text, out newYMin) && newYMin.CompareTo(gsrChart.ChartAreas[0].AxisY.Maximum) < 0)
+            String errorClosePort = "The port is already closed;";
+            try
             {
-                gsrChart.ChartAreas[0].AxisY.Minimum = newYMin;
+                gsrAsset.StopSignalsRecord();
+                timer1.Stop();
+                lblErrors.Text = lblErrors.Text.ToString().Replace(errorClosePort, "");
             }
-            gsrChart.ChartAreas[0].AxisY.Minimum = newYMin;
-        }
-
-        private void MaxYBtn_Click(object sender, EventArgs e)
-        {
-            double newYMax;
-            if (Double.TryParse(MaxYTxtBox.Text, out newYMax) && newYMax.CompareTo(gsrChart.ChartAreas[0].AxisY.Minimum) > 0)
+            catch (Exception exc)
             {
-                gsrChart.ChartAreas[0].AxisY.Maximum = newYMax;
+                if (!"BackgroundMode".Equals(settings.FormMode))
+                {
+                    lblErrors.Text = lblErrors.Text + errorClosePort;
+                }
+                logger.Log(Severity.Error, PrintException(exc));
             }
-            //gsrChart.ChartAreas[0].AxisY.Maximum = newYMax;
         }
 
         Point? prevPosition = null;
@@ -515,47 +412,72 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
             }
         }
 
+        private void imgZoomInOut_MouseOver(Object sender, EventArgs e)
+        {
+            ttpMouseInOut.Show("When stoped the GSR device you can use the mouse's wheel for zoom in/out.", gsrImgZoomInOut);
+        }
+
         private void CheckDenoisedFilter_CheckedChanged(object sender, EventArgs e)
         {
             if (checkDenoisedFilter.Checked) gsrChart.Series[medianLineName].Enabled = true;
             else gsrChart.Series[medianLineName].Enabled = false;
         }
 
-        private void MinYFltBtn_Click(object sender, EventArgs e)
-        {
-            double newYFltMin;
-            if (Double.TryParse(MinYFltTxtBox.Text, out newYFltMin) && newYFltMin.CompareTo(butterworthChart.ChartAreas[0].AxisY.Maximum) < 0)
-            {
-                butterworthChart.ChartAreas[0].AxisY.Minimum = newYFltMin;
-            }
-        }
-
-        private void MaxYFltBtn_Click(object sender, EventArgs e)
-        {
-            double newYFltMax;
-            if (Double.TryParse(MaxYFltTxtBox.Text, out newYFltMax) && newYFltMax.CompareTo(butterworthChart.ChartAreas[0].AxisY.Minimum) > 0)
-            {
-                butterworthChart.ChartAreas[0].AxisY.Maximum = newYFltMax;
-            }
-        }
-
         private void SignalVisualization_Closed(object sender, EventArgs e)
         {
-            if (signalController != null)
+            if (gsrAsset != null)
             {
-                signalController.StopSignalsRecord();
-            }
-
-            if (socketListener != null)
-            {
-                socketListener.CloseSocket();
+                gsrAsset.StopSignalsRecord();
+                gsrAsset.CloseSocket();
             }
         }
 
         private void btnStartSocket_Click(object sender, EventArgs e)
         {
-            socketListener.Start();
-            btnStartSocket.Visible = false;
+            StartSocket();
+        }
+
+        private void StartSocket()
+        {
+            String errorStartSocket = "The socket can not be started. Please, check the log file;";
+            try
+            {
+                gsrAsset.StartSocket();
+
+                if (!"BackgroundMode".Equals(settings.FormMode))
+                {
+                    if (gsrAsset.IsSocketConnected()) btnSocketLight.BackColor = Color.GreenYellow;
+                    else btnSocketLight.BackColor = Color.Red;
+
+                    btnStopSocket.Visible = true;
+                    btnStartSocket.Visible = false;
+                    lblErrors.Text = lblErrors.Text.ToString().Replace(errorStartSocket, "");
+                }
+            }
+            catch (Exception e)
+            {
+                if (!"BackgroundMode".Equals(settings.FormMode))
+                {
+                    lblErrors.Text = lblErrors.Text + errorStartSocket;
+                }
+                logger.Log(Severity.Error, PrintException(e));
+            }
+        }
+
+        private void btnStopSocket_Click(object sender, EventArgs e)
+        {
+            gsrAsset.CloseSocket();
+
+            if (gsrAsset.IsSocketConnected()) btnSocketLight.BackColor = Color.GreenYellow;
+            else btnSocketLight.BackColor = Color.Red;
+
+            btnStopSocket.Visible = false;
+            btnStartSocket.Visible = true;
+        }
+
+        private void gsrImgZoomInOut_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

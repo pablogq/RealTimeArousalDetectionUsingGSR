@@ -19,97 +19,74 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Assets.Rage.GSRAsset.SignalProcessor
+namespace Assets.Rage.GSRAsset.Utils
 {
     class FilterMedian
     {
-        private Dictionary<int, Dictionary<double, double>> signalCoordinates;
+        private SignalDataByTime[] signalCoordinates;
 
         public FilterMedian()
         {
             //super();
         }
 
-        public FilterMedian(Dictionary<int, Dictionary<double, double>> signalCoordinates)
+        public FilterMedian(SignalDataByTime[] signalCoordinates)
         {
             this.signalCoordinates = signalCoordinates;
         }
 
-        public Dictionary<int, Dictionary<double, double>> GetMedianFilterPoints()
+        public SignalDataByTime[] GetMedianFilterPoints()
         {
             if (this.signalCoordinates == null) return null;
 
-            Dictionary<int, Dictionary<double, double>> result = new Dictionary<int, Dictionary<double, double>>();
-            signalCoordinates = extendSignalCoordinates(signalCoordinates);
+            SignalDataByTime[]  signalCoordinatesExtented = extendSignalCoordinates(signalCoordinates);
 
-            foreach (KeyValuePair<int, Dictionary<double, double>> channelCoordinates in signalCoordinates)
+            SignalDataByTime[] result = new SignalDataByTime[signalCoordinates.Length];
+            for (int i = 2; i < signalCoordinatesExtented.Length - 2; ++i)
             {
-                Dictionary<double, double> resultChannelCoordinates = new Dictionary<double, double>();
-                Dictionary<double, double>.ValueCollection channelCoordinateValues = channelCoordinates.Value.Values;
-                Dictionary<double, double>.KeyCollection channelCoordinatesKeys = channelCoordinates.Value.Keys;
-                int vectorCoordinatesSize = channelCoordinateValues.Count;
-                for (int i = 2; i < vectorCoordinatesSize - 2; ++i)
+                double[] window = new double[5];
+                //store each 5 consecutive elements
+                for (int j = 0; j < 5; ++j)
                 {
-                    double[] window = new double[5];
-                    for (int j = 0; j < 5; ++j)
-                    {
-                        window[j] = channelCoordinateValues.ElementAt(i - 2 + j);
-                    }
-
-                    for (int j = 0; j < 3; ++j)
-                    {
-                        //   Find position of minimum element
-                        int min = j;
-                        for (int k = j + 1; k < 5; ++k)
-                            if (window[k] < window[min])
-                                min = k;
-                        //   Put found minimum element in its place
-                        double temp = window[j];
-                        window[j] = window[min];
-                        window[min] = temp;
-                    }
-
-                    //   Get result - the middle element
-                    resultChannelCoordinates.Add(channelCoordinatesKeys.ElementAt(i), window[2]);
+                    window[j] = signalCoordinatesExtented.ElementAt(i - 2 + j).SignalValue;
                 }
 
-                /* for (int i = 0; i < 2; ++i)
-                 {
-                     resultChannelCoordinates.Add(channelCoordinatesKeys.ElementAt(i), channelCoordinateValues.ElementAt(1 - i));
-                     resultChannelCoordinates.Add(channelCoordinatesKeys.ElementAt(vectorCoordinatesSize - 2 + i), channelCoordinateValues.ElementAt(vectorCoordinatesSize - 1 - i));
-                 }*/
+                //sort elements of the array window
+                for (int j = 0; j < 3; ++j)
+                {
+                    //   Find position of minimum element
+                    int min = j;
+                    for (int k = j + 1; k < 5; ++k)
+                        if (window[k] < window[min])
+                            min = k;
+                    //   Put found minimum element in its place
+                    double temp = window[j];
+                    window[j] = window[min];
+                    window[min] = temp;
+                }
 
-                result.Add(channelCoordinates.Key, resultChannelCoordinates);
+                //   Get result - the middle element
+                result[i - 2] = new SignalDataByTime(signalCoordinatesExtented.ElementAt(i-2).Time, window[2], signalCoordinatesExtented.ElementAt(i - 2).HighPassValue, signalCoordinatesExtented.ElementAt(i - 2).LowPassValue);
             }
+
+            signalCoordinatesExtented = null;
 
             return result;
         }
 
-        private Dictionary<int, Dictionary<double, double>> extendSignalCoordinates(Dictionary<int, Dictionary<double, double>> signalCoordinates)
+        private SignalDataByTime[] extendSignalCoordinates(SignalDataByTime[] signalCoordinates)
         {
-            if (signalCoordinates == null || signalCoordinates.Count == 0 || signalCoordinates.ElementAt(0).Value.Count < 2) return signalCoordinates;
+            if (signalCoordinates == null || signalCoordinates.Length == 0 || signalCoordinates.Length < 2) return signalCoordinates;
 
-            Dictionary<int, Dictionary<double, double>> result = new Dictionary<int, Dictionary<double, double>>();
-            foreach (KeyValuePair<int, Dictionary<double, double>> channelCoordinates in signalCoordinates)
+            SignalDataByTime[] result = new SignalDataByTime[signalCoordinates.Length + 4];
+            result[0] = new SignalDataByTime(signalCoordinates.ElementAt(1).Time - 20.0, signalCoordinates.ElementAt(1).SignalValue);
+            result[1] = new SignalDataByTime(signalCoordinates.ElementAt(0).Time - 10.0, signalCoordinates.ElementAt(0).SignalValue);
+            for(int i = 0; i < signalCoordinates.Length; i++)
             {
-                int coordinatesCount = channelCoordinates.Value.Count;
-                Dictionary<double, double> coordinatesValue = channelCoordinates.Value;
-                Dictionary<double, double> extendedChannelCoordinates = new Dictionary<double, double>()
-                {
-                    {coordinatesValue.ElementAt(coordinatesCount - 1).Key - 20.0, coordinatesValue.ElementAt(coordinatesCount - 2).Value},
-                    {coordinatesValue.ElementAt(coordinatesCount - 1).Key - 10.0, coordinatesValue.ElementAt(coordinatesCount - 1).Value}
-                };
-
-                foreach (KeyValuePair<double, double> currentCoordinate in channelCoordinates.Value)
-                {
-                    extendedChannelCoordinates.Add(currentCoordinate.Key, currentCoordinate.Value);
-                }
-
-                extendedChannelCoordinates.Add((coordinatesValue.ElementAt(0).Key + 10.0), coordinatesValue.ElementAt(0).Value);
-                extendedChannelCoordinates.Add((coordinatesValue.ElementAt(0).Key + 20.0), coordinatesValue.ElementAt(1).Value);
-
-                result.Add(channelCoordinates.Key, extendedChannelCoordinates);
+                result[i + 2] = signalCoordinates.ElementAt(i);
             }
+            result[signalCoordinates.Length + 2] = new SignalDataByTime(signalCoordinates.ElementAt(signalCoordinates.Length - 1).Time+ 10.0, signalCoordinates.ElementAt(signalCoordinates.Length - 1).SignalValue);
+            result[signalCoordinates.Length + 3] = new SignalDataByTime(signalCoordinates.ElementAt(signalCoordinates.Length - 2).Time+ 20.0, signalCoordinates.ElementAt(signalCoordinates.Length - 2).SignalValue);
 
             return result;
         }
