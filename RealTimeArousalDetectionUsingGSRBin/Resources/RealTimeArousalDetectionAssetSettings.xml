@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<RealTimeArousalDetectionAssetSettings>
+  <LogFile>C:/Users/ddessy/logs/log.txt</LogFile>
+  <TestData>C:/Users/ddessy/logs/testData.txt</TestData>
+
+  <MinGSRDeviceSignalValue>488</MinGSRDeviceSignalValue>
+  <MaxGSRDeviceSignalValue>2000000</MaxGSRDeviceSignalValue>
+
+  <CalibrationTimerInterval>100</CalibrationTimerInterval>
+  
+  <DefaultTimeWindow>8</DefaultTimeWindow>
+  <Samplerate>10</Samplerate>
+  <ArousalLevel>100</ArousalLevel>
+  <COMPort>N.A.</COMPort>
+  <SocketPort>10116</SocketPort>
+  <SocketIPAddress>127.0.0.1</SocketIPAddress>
+
+  <ButterworthPhasicFrequency>0.05</ButterworthPhasicFrequency>
+  <ButterworthTonicFrequency>0.05</ButterworthTonicFrequency>
+
+  <ApplicationMode>NoTestWithoutDevice</ApplicationMode>
+  <FormMode>NoBackgroundMode</FormMode>
+</RealTimeArousalDetectionAssetSettings>
+
