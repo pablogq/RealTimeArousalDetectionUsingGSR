@@ -42,34 +42,29 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Properties\Settings.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-      <DependentUpon>Settings.settings</DependentUpon>
-    </Compile>
     <Compile Include="SocketListener.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="app.config">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <WCFMetadata Include="Service References\" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Logger\Logger.csproj">
-      <Project>{ba4e5dc4-5690-4e45-b690-786dac398e6a}</Project>
-      <Name>Logger</Name>
+    <ProjectReference Include="..\RageAssetManager\RageAssetManager.csproj">
+      <Project>{DA8E9056-2E52-4029-81EB-A2D167614C47}</Project>
+      <Name>RageAssetManager</Name>
     </ProjectReference>
     <ProjectReference Include="..\RealTimeArousalDetection\RealTimeArousalDetection.csproj">
       <Project>{2276781f-bee6-4ffa-9ecc-ec6f00880eca}</Project>
       <Name>RealTimeArousalDetection</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Utils\Utils.csproj">
+      <Project>{ba4e5dc4-5690-4e45-b690-786dac398e6a}</Project>
+      <Name>Utils</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Resources\SocketServer.VersionAndDependencies.xml">
+      <SubType>Designer</SubType>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -19,33 +19,51 @@
 using AssetManagerPackage;
 using AssetPackage;
 using Assets.Rage.GSRAsset.SignalDevice;
-using Assets.Rage.GSRAsset.SignalProcessor;
+using Assets.Rage.GSRAsset.SocketServer;
+using Assets.Rage.GSRAsset.Utils;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Xml.Serialization;
+using System.Globalization;
+using System.Linq;
 
 namespace Assets.Rage.GSRAsset.Integrator
 {
-    public class RealTimeArousalDetectionUsingGSRAsset : BaseAsset, IArousalDetection, ISignalDeviceController
+    public class RealTimeArousalDetectionUsingGSRAsset : BaseAsset, ISignalDeviceController
     {
         #region Fields
-        private RealTimeArousalDetectionAssetSettings settings = null;
-        GSRHRDevice gsrDevice;
-        GSRSignalProcessor gsrProcessor;
+        private static RealTimeArousalDetectionUsingGSRAsset instance = null;
+        private SocketListener socketListener;
+        private RealTimeArousalDetectionAssetSettings settings;
+        private GSRHRDevice gsrDevice;
+        private GSRSignalProcessor gsrProcessor;
+        private ILog logger;
         #endregion Fields
 
         #region Constructors
+        public static RealTimeArousalDetectionUsingGSRAsset Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    instance = new RealTimeArousalDetectionUsingGSRAsset();
+                }
+                return instance;
+            }
+        }
+
         public RealTimeArousalDetectionUsingGSRAsset() : base()
         {
-            gsrDevice = new GSRHRDevice();
+            socketListener = new SocketListener();
+            gsrDevice = GSRHRDevice.Instance;
             gsrProcessor = new GSRSignalProcessor();
-            settings = new RealTimeArousalDetectionAssetSettings();
+            settings = RealTimeArousalDetectionAssetSettings.Instance;
+            logger = (ILog)AssetManager.Instance.Bridge;
 
             //preventing multiple asset creation
             if (AssetManager.Instance.findAssetsByClass(this.Class).Count > 1)
             {
-                Logger.Log("Attempt for more than one instance of the class RealTimeArousalDetectionUsingGSRAsset (it is not allowed).");
+                logger.Log(Severity.Error, "Attempt for more than one instance of the class RealTimeArousalDetectionUsingGSRAsset (it is not allowed).");
             }
         }
         #endregion Constructors
@@ -65,11 +83,91 @@ namespace Assets.Rage.GSRAsset.Integrator
 
         #endregion Properties
 
-
         #region PublicMethods
         public GSRHRDevice GetGSRDevice()
         {
-            return gsrDevice;
+            return (GSRHRDevice)gsrDevice;
+        }
+
+        public int StopSignalsRecord()
+        {
+            return gsrDevice.StopSignalsRecord();
+        }
+
+        public ErrorStartSignalDevice StartGSRDevice(String lblError)
+        {
+            ErrorStartSignalDevice result = new ErrorStartSignalDevice();
+            if (!"TestWithoutDevice".Equals(settings.ApplicationMode))
+            {
+                String errorComPort = "The COM Port " + settings.COMPort + " is not available;";
+                String errorOpenPort = "The port can not be open;";
+                String errorStartSignalDevice = "The GSR device can not be started. Please check log file;";
+
+                try
+                {
+                    SelectCOMPort(settings.COMPort);
+                    lblError = lblError.ToString().Replace(errorComPort, "");
+                }
+                catch (Exception e)
+                {
+                    if (!"BackgroundMode".Equals(settings.FormMode))
+                    {
+                        lblError = lblError + errorComPort;
+                        return new ErrorStartSignalDevice(lblError, ErrorStartSignalDevice.ErrorType.ErrorComPort, e);
+                    }
+                }
+
+                try
+                {
+                    OpenPort(settings.Samplerate);
+                    lblError = lblError.ToString().Replace(errorOpenPort, "");
+                }
+                catch (Exception e)
+                {
+                    if (!"BackgroundMode".Equals(settings.FormMode))
+                    {
+                        lblError = lblError + errorOpenPort;
+                        return new ErrorStartSignalDevice(lblError, ErrorStartSignalDevice.ErrorType.ErrorOpenPort, e);
+                    }
+                }
+
+                try
+                {
+                    StartSignalsRecord();
+                    lblError = lblError.ToString().Replace(errorStartSignalDevice, "");
+                }
+                catch (Exception e)
+                {
+                    if (!"BackgroundMode".Equals(settings.FormMode))
+                    {
+                        lblError = lblError + errorStartSignalDevice;
+                        return new ErrorStartSignalDevice(lblError, ErrorStartSignalDevice.ErrorType.ErrorStartSignalDevice, e); 
+                    }
+                }
+            }
+
+            return new ErrorStartSignalDevice(lblError, ErrorStartSignalDevice.ErrorType.None, null);
+        }
+
+        public void StartSocket()
+        {
+            if (socketListener != null)
+            {
+                socketListener.Start();
+            }
+        }
+
+        public void CloseSocket()
+        {
+            if (socketListener != null)
+            {
+                socketListener.CloseSocket();
+            }
+        }
+
+        public bool IsSocketConnected()
+        {
+            return socketListener.IsSocketConnected();
         }
 
         public GSRSignalProcessor GetGSRSignalProcessor()
@@ -79,32 +177,43 @@ namespace Assets.Rage.GSRAsset.Integrator
 
         public double GetGSRFeature(string featureName)
         {
+            ArousalStatistics arousalStat = gsrProcessor.GetArousalStatistics();
             if ("SCRArousalArea".Equals(featureName))
             {
-                return gsrProcessor.GetArousalStatistics().SCRArousalArea;
+                return arousalStat.SCRArousalArea;
             }
 
             if ("SCRAchievedArousalLevel".Equals(featureName))
             {
-                return gsrProcessor.GetArousalStatistics().SCRAchievedArousalLevel;
+                return arousalStat.SCRAchievedArousalLevel;
             }
 
             if ("SCLAchievedArousalLevel".Equals(featureName))
             {
-                return gsrProcessor.GetArousalStatistics().SCLAchievedArousalLevel;
+                return arousalStat.SCLAchievedArousalLevel;
             }
 
             if ("MovingAverage".Equals(featureName))
             {
-                return gsrProcessor.GetArousalStatistics().MovingAverage;
+                return arousalStat.MovingAverage;
+            }
+
+            if ("GeneralArousalLevel".Equals(featureName))
+            {
+                return arousalStat.GeneralArousalLevel;
             }
 
             return -1;
         }
 
-        public void GetSignalData(byte[] data)
+        public List<SignalDataByTime> GetSignalData()
         {
-            gsrDevice.GetSignalData(data);
+            return gsrProcessor.GetSignalValues().ToList();
+        }
+
+        public SignalDataByTime[] GetMedianFilterValues(SignalDataByTime[] sourceList)
+        {
+            return gsrProcessor.GetMedianFilterPoints(sourceList);
         }
 
         public int GetSignalSampleRate()
@@ -122,28 +231,17 @@ namespace Assets.Rage.GSRAsset.Integrator
             gsrDevice.OpenPort();
         }
 
+        public void OpenPort(int sampleRate)
+        {
+            gsrDevice.OpenPort(sampleRate);
+        }
+
         public void SelectCOMPort(string portName)
         {
             gsrDevice.SelectCOMPort(portName);
         }
 
-        public int SetMaxArousalLevel(int numberOfLevels)
-        {
-            if (numberOfLevels < 100 && numberOfLevels > 0)
-            {
-                gsrProcessor.ArousalLevel = numberOfLevels;
-                return 0;
-            }
-
-            return -1;
-        }
-
-        public void SetSignalSamplerate()
-        {
-            gsrDevice.SetSignalSamplerate();
-        }
-
-        public int SetSignalSamplerate(string speed)
+        public int SetSignalSamplerate(int speed)
         {
             return gsrDevice.SetSignalSamplerate(speed);
         }
@@ -157,7 +255,7 @@ namespace Assets.Rage.GSRAsset.Integrator
         {
             if (timeWindow > 0)
             {
-                gsrProcessor.DefaultTimeWindow = Convert.ToDouble(timeWindow);
+                gsrProcessor.DefaultTimeWindow = Convert.ToDouble(timeWindow, CultureInfo.InvariantCulture);
                 return 0;
             }
 
@@ -169,94 +267,35 @@ namespace Assets.Rage.GSRAsset.Integrator
             return gsrDevice.StartSignalsRecord();
         }
 
-        public int StopSignalsRecord()
+        public void SetSignalSamplerate()
         {
-            return gsrDevice.StartSignalsRecord();
+            gsrDevice.SetSignalSamplerate();
         }
 
-        public enum SettingsLocation
+        //Start Of Calibration Period
+        public string StartOfCalibrationPeriod()
         {
-            /// <summary>
-            /// An enum constant representing the local option.
-            /// </summary>
-            Local,
-            /// <summary>
-            /// An enum constant representing the server option.
-            /// </summary>
-            Server
+            return gsrProcessor.StartOfCalibrationPeriod();
+        }
+
+        //End Of Calibration Period
+        public string EndOfCalibrationPeriod()
+        {
+            return gsrProcessor.EndOfCalibrationPeriod();
+        }
+
+        //Get arousal statistics for the last time-window interval
+        public string GetEDA()
+        {
+            return gsrProcessor.GetJSONArousalStatistics(gsrProcessor.GetArousalStatistics());
+        }
+
+        //End Of Measurement
+        public string EndOfMeasurement()
+        {
+            return gsrProcessor.EndOfMeasurement();
         }
 
         #endregion PublicMethods
-
-        #region InternalMethods
-        /// <summary>
-        /// Method returning the RealTimeArousalDetectionAssetSettings for internal use.
-        /// </summary>
-        /// <returns> Settings of this Asset. </returns>
-        internal RealTimeArousalDetectionAssetSettings getSettings()
-        {
-            return (this.settings);
-        }
-
-        internal RealTimeArousalDetectionAssetSettings LoadDefaultRealTimeArousalDetectionAssetSettings(String location)
-        {
-            RealTimeArousalDetectionAssetSettings gsrSettings = (RealTimeArousalDetectionAssetSettings)AssetManager.Instance.findAssetByClass("RealTimeArousalDetectionUsingGSRAsset").Settings;
-            if (SettingsLocation.Local.Equals(location))
-            {
-                IDataStorage storage = (IDataStorage)AssetManager.Instance.Bridge;
-                if (storage != null && storage.Exists(gsrSettings.LocalSource))
-                {
-                    return (this.getRealTimeArousalDetectionAssetSettingsByString(storage.Load(gsrSettings.LocalSource)));
-                }
-            }
-
-            if (SettingsLocation.Server.Equals(location))
-            {
-                IWebServiceRequest serverRequest = (IWebServiceRequest)AssetManager.Instance.Bridge;
-                if (serverRequest != null)
-                {
-                    RequestSetttings requestSettings = new RequestSetttings();
-                    requestSettings.method = "GET";
-                    requestSettings.uri = new Uri(gsrSettings.ServerSource);
-                    requestSettings.requestHeaders = new Dictionary<string, string>(); 
-
-                    RequestResponse requestResponse = new RequestResponse();
-
-                    serverRequest.WebServiceRequest(requestSettings, out requestResponse);
-                    return (this.getRealTimeArousalDetectionAssetSettingsByString(requestResponse.body));
-                }
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Method for storing the settings to a xml file.
-        /// </summary>
-        /// 
-        /// <param name="settings"> RealTimeArousalDetectionAssetSettings value. </param>
-        /// <param name="configFile"> path to the target file. </param>
-        internal void writeSettingsToFile(RealTimeArousalDetectionAssetSettings settings, String configFile)
-        {
-            IDataStorage storage = (IDataStorage)AssetManager.Instance.Bridge;
-            if (storage != null)
-            {
-                storage.Save(configFile, settings.SettingsToXmlString());
-            }
-        }
-
-        internal RealTimeArousalDetectionAssetSettings getRealTimeArousalDetectionAssetSettingsByString(String xmlContent)
-        {
-            XmlSerializer serializer = new XmlSerializer(typeof(RealTimeArousalDetectionAssetSettings));
-            using (TextReader reader = new StringReader(xmlContent))
-            {
-                RealTimeArousalDetectionAssetSettings result = (RealTimeArousalDetectionAssetSettings)serializer.Deserialize(reader);
-                return (result);
-            }
-        }
-
-
-        #endregion InternalMethods
     }
-
 }

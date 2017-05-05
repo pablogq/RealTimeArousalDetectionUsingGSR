@@ -40,19 +40,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ErrorStartSignalDevice.cs" />
     <Compile Include="RealTimeArousalDetectionUsingGSRAsset.cs" />
-    <Compile Include="RealTimeArousalDetectionAssetSettings.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SocketListener.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\SignalDevice\SignalDevice.csproj">
-      <Project>{d44c2378-492f-4d69-823c-024edf41dd98}</Project>
-      <Name>SignalDevice</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\Logger\Logger.csproj">
-      <Project>{ba4e5dc4-5690-4e45-b690-786dac398e6a}</Project>
-      <Name>Logger</Name>
-    </ProjectReference>
     <ProjectReference Include="..\RageAssetManager\RageAssetManager.csproj">
       <Project>{da8e9056-2e52-4029-81eb-a2d167614c47}</Project>
       <Name>RageAssetManager</Name>
@@ -60,6 +53,14 @@
     <ProjectReference Include="..\RealTimeArousalDetection\RealTimeArousalDetection.csproj">
       <Project>{2276781f-bee6-4ffa-9ecc-ec6f00880eca}</Project>
       <Name>RealTimeArousalDetection</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\SignalDevice\SignalDevice.csproj">
+      <Project>{d44c2378-492f-4d69-823c-024edf41dd98}</Project>
+      <Name>SignalDevice</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Utils\Utils.csproj">
+      <Project>{ba4e5dc4-5690-4e45-b690-786dac398e6a}</Project>
+      <Name>Utils</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

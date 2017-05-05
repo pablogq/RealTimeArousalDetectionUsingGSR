@@ -7,7 +7,6 @@
   <revision></revision>
   <maturity>beta</maturity>
   <dependencies>
-    <depends minVersion="1.2.3">Logger</depends>
     <depends minVersion="1.2.3">SignalDevice</depends>
   </dependencies>
 </version>

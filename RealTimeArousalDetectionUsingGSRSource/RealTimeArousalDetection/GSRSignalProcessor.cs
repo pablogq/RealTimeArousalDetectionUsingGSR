@@ -18,28 +18,57 @@
 
 using System;
 using Assets.Rage.GSRAsset.SignalDevice;
-using System.IO;
-using System.Configuration;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web.Script.Serialization;
+using System.Timers;
+using AssetPackage;
+using AssetManagerPackage;
+using System.Globalization;
 
-namespace Assets.Rage.GSRAsset.SignalProcessor
+namespace Assets.Rage.GSRAsset.Utils
 {
     public class GSRSignalProcessor
     {
-        public Dictionary<int, List<double>> channelsValues;
+        public SignalDataByTime[] signalValues;
         public String pathToBinaryFile;
-        public double gsrValuesReadTime;
-        public Dictionary<int, Dictionary<double, double>> coordinates;
-        public const int GSR_CHANNEL = 0;
-        public const int HR_CHANNEL = 1;
         public const double BUTTERWORTH_TONIC_PHASIC_FREQUENCY = 0.05;
-        private Configuration settings = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+        private RealTimeArousalDetectionAssetSettings settings;
+        private ILog logger;
+        private int sampleRate = 0;
+        ISignalDeviceController signalController;
+        double timeWhenSignalValuesAreExtracted;
 
         private int arousalLevel;
 
         private double defaultTimeWindow;
+        private double HIGHPASS_ADJUSTING_VARIABLE = 3000.00;
+
+        private double minArousalArea;
+        private double maxArousalArea;
+        private double minTonicAmplitude;
+        private double maxTonicAmplitude;
+        private double minMovingAverage;
+        private double maxMovingAverage;
+        private Timer calibrationTimer;
+
+        public GSRSignalProcessor()
+        {
+            signalController = GSRHRDevice.Instance;
+            settings = RealTimeArousalDetectionAssetSettings.Instance;
+            logger = (ILog)AssetManager.Instance.Bridge;
+
+            sampleRate = !"TestWithoutDevice".Equals(settings.ApplicationMode) ? signalController.GetSignalSampleRate() : 0;
+            signalValues = GetSignalValues();
+
+            arousalLevel = settings.ArousalLevel;
+            defaultTimeWindow = settings.DefaultTimeWindow;
+
+            calibrationTimer = new Timer(settings.CalibrationTimerInterval);
+            calibrationTimer.Elapsed += CalibrationTimer_Elapsed;
+
+            InitializeMinMaxStatistics();
+        }
 
         public int ArousalLevel
         {
@@ -67,282 +96,297 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
             }
         }
 
-        public GSRSignalProcessor()
+
+        /// <summary>
+        /// Get all available signal values in the cache.
+        /// </summary>
+        /// 
+        /// <returns>
+        /// All available signal values.
+        /// </returns>
+        public SignalDataByTime[] GetSignalValues()
         {
-            //ConfigurationManager.RefreshSection("appSettings");
-
-            channelsValues = new Dictionary<int, List<double>>();
-            gsrValuesReadTime = (double)(DateTime.Now - DateTime.MinValue).TotalMilliseconds;
-
-            arousalLevel = Convert .ToInt32(settings.AppSettings.Settings["ArousalLevel"].Value);
-            defaultTimeWindow = GetAppValue("DefaultTimeWindow");
-
-            //re-initialize calibration data
-            settings.AppSettings.Settings["CalibrationMinArousalArea"].Value =             
-                settings.AppSettings.Settings["MinAverageArousalArea"].Value;
-            settings.AppSettings.Settings["CalibrationMaxArousalArea"].Value =
-                settings.AppSettings.Settings["MaxAverageArousalArea"].Value;
-            settings.AppSettings.Settings["CalibrationMinTonicAmplitude"].Value = 
-                settings.AppSettings.Settings["MinAverageTonicAmplitude"].Value;
-            settings.AppSettings.Settings["CalibrationMaxTonicAmplitude"].Value =
-                settings.AppSettings.Settings["MaxAverageTonicAmplitude"].Value;
-
-            //settings.Save(ConfigurationSaveMode.Minimal);
-            //ConfigurationManager.RefreshSection("appSettings");
-
-            /*
-            minArousalArea = -1.0;
-            maxArousalArea = -1.0;
-            minTonicAmplitude = 0.0;
-            maxTonicAmplitude = 0.0;
-            */
-        }
-     
-        public Dictionary<int, List<double>> ExtractChannelsValues()
-        {
-            channelsValues = CacheSignalData.GetChannelsCache();
-            return channelsValues;
+            signalValues = CacheSignalData.GetCacheData();
+            timeWhenSignalValuesAreExtracted = (double)(DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
+            return signalValues;
         }
 
-        //read binary file and collect values for each one channel
-        public Dictionary<int, List<double>> ExtractChannelsValuesFromFile()
+        /// <summary>
+        /// Apply Median filter on a set of sigal data.
+        /// </summary>
+        /// 
+        /// <param name="signalCoordinates">List of signal data.</param>
+        /// 
+        /// <returns>
+        /// Medial filter values for the list of signal data.
+        /// </returns>
+        public SignalDataByTime[] GetMedianFilterPoints(SignalDataByTime[] signalCoordinates)
         {
-            int numberOfValues = 0;
-            using (BinaryReader binaryData = new BinaryReader(File.Open(pathToBinaryFile, FileMode.Open)))
-            {
-                // Position and length variables.
-                int pos = 0;
-                // Use BaseStream.
-                int length = (int)binaryData.BaseStream.Length;
-                while (pos < length)
-                {
-                    // Read integer.
-                    byte[] unitValue = binaryData.ReadBytes(3);
-
-                    TetradArray currentBCDChannelValue = new TetradArray();
-                    TetradUtil tetradUtil = new TetradUtil();
-                    int channelNumber = -1;
-
-                    foreach (byte subUnit in unitValue)
-                    {
-                        tetradUtil.SetTetradChannelValuesByByte(subUnit);
-                        string bcdNumber = tetradUtil.GetBCDNumber();
-                        channelNumber = tetradUtil.GetChannelNumber();
-                        int tetradNumber = tetradUtil.GetTetradNumber();
-                        string tetradValue = tetradUtil.GetTetradValue();
-                        currentBCDChannelValue = tetradUtil.SetBCDChannelValue(currentBCDChannelValue);
-                    }
-
-                    //add currentValue
-                    int currentINTChannelValue = currentBCDChannelValue.GetTetradValue();
-
-                    if (numberOfValues > 5000)
-                    {
-                        break;
-                    }
-                    else
-                    {
-                        FillChannelsValues(channelNumber, currentINTChannelValue);
-                    }
-
-                    numberOfValues++;
-                    // Advance our position variable.
-                    pos += 3;
-                }
-            }
-
-            //gsrValuesReadTime = DateTime.Now.Millisecond;
-
-            return channelsValues;
-        }
-
-        private void FillChannelsValues(int channelNumber, int currentINTChannelValue)
-        {
-            if (channelsValues.ContainsKey(channelNumber) && currentINTChannelValue > -1)
-            {
-                List<double> channelTetradArray = null;
-                channelsValues.TryGetValue(channelNumber, out channelTetradArray);
-                if (channelTetradArray != null)
-                {
-                    channelTetradArray.Add(currentINTChannelValue);
-                    channelsValues.Remove(channelNumber);
-                    channelsValues.Add(channelNumber, channelTetradArray);
-                }
-            }
-            else if (channelNumber < 4 && channelNumber > -1 && currentINTChannelValue > -1)
-            {
-                channelsValues.Add(channelNumber, new List<double> { currentINTChannelValue });
-            }
-        }
-
-        public Dictionary<int, Dictionary<double, double>> GetMedianFilterPoints(Dictionary<int, Dictionary<double, double>> signalCoordinates)
-        {
-            if (signalCoordinates == null) signalCoordinates = coordinates;
+            if (signalCoordinates == null) signalCoordinates = signalValues;
             if (signalCoordinates == null) return null;
             FilterMedian filterMedian = new FilterMedian(signalCoordinates);
 
             return filterMedian.GetMedianFilterPoints();
         }
 
-        public ArousalStatistics GetArousalStatistics(Dictionary<double, double> coordinates, double timeWindow, TimeWindowMeasure timeWindowType, int sampleRate)
+        /// <summary>
+        /// Calculate arousal statistics for the passed time window in seconds.
+        /// </summary>
+        /// 
+        /// <param name="timeWindowType">The type of time window: milliseconds or seconds.</param>
+        /// <param name="timeWindow">Time wondow.</param>
+        /// 
+        /// <returns>
+        /// Arousal statistics for the passed time window in seconds.
+        /// </returns>
+        public ArousalStatistics GetArousalStatistics(List<SignalDataByTime> highPassCoordinates, double timeWindow, TimeWindowMeasure timeWindowType, int sampleRate)
         {
-            /*
-            Logger.Log(coordinates.Values.ElementAt(coordinates.Count - 4).ToString());
-            Logger.Log(coordinates.Values.ElementAt(coordinates.Count - 3).ToString());
-            Logger.Log(coordinates.Values.ElementAt(coordinates.Count - 2).ToString());
-            Logger.Log(coordinates.Values.ElementAt(coordinates.Count-1).ToString());
-            */
-            if (timeWindow.CompareTo(0) <= 0 || sampleRate <= 0 || coordinates.Count <= 0) return null;
+            if (timeWindow.CompareTo(0) <= 0 || sampleRate <= 0 || highPassCoordinates.Count <= 0) return null;
 
-            int numberOfAffectedPoints = GetNumberOfAffectedPoints(timeWindow, timeWindowType, sampleRate);
+            int numberOfAffectedPoints = GetNumberOfAffectedPoints(highPassCoordinates, timeWindow, timeWindowType, sampleRate);
 
-            if (coordinates.Count < numberOfAffectedPoints) return GetArousalStatistics(coordinates);
+            //if (coordinates.Count < numberOfAffectedPoints) return GetArousalInfoForCoordinates(coordinates, coordinates.Count, defaultTimeWindow);
             double timeWindowInSeconds = timeWindowType.Equals(TimeWindowMeasure.Milliseconds) ? timeWindow / 1000 : timeWindow;
-            return GetArousalInfoForCoordinates(coordinates, numberOfAffectedPoints, timeWindowInSeconds);
+            return GetArousalInfoForCoordinates(highPassCoordinates, numberOfAffectedPoints, timeWindowInSeconds);
         }
 
-        public ArousalStatistics GetArousalStatistics(Dictionary<double, double> coordinates)
+
+        /// <summary>
+        /// Calculate arousal statistics for the last time window set in the configuration file.
+        /// </summary>
+        /// 
+        /// <param name="coordinates">List of all signal values stored in the cache.</param>
+        /// 
+        /// <returns>
+        /// Arousal statistics for the last default time window.
+        /// </returns>
+        public ArousalStatistics GetArousalStatistics(List<SignalDataByTime> coordinates)
         {
             return GetArousalInfoForCoordinates(coordinates, coordinates.Count, defaultTimeWindow);
         }
 
-        private ArousalStatistics GetArousalInfoForCoordinates(Dictionary<double, double> coordinates, int numberOfAffectedPoints, double timeWindow)
+        /// <summary>
+        /// Calculate arousal statistics for the passed time window.
+        /// </summary>
+        /// 
+        /// <param name="highPassCoordinates">List of all signal values stored in the cache.</param>
+        /// <param name="numberOfAffectedPoints">Number of affected points.</param>
+        /// <param name="timeWindow">Time wondow.</param>
+        /// 
+        /// <returns>
+        /// Arousal statistics for the passed time window.
+        /// </returns>
+        private ArousalStatistics GetArousalInfoForCoordinates(List<SignalDataByTime> highPassCoordinates, int numberOfAffectedPoints, double timeWindow)
         {
             InflectionLine inflectionLinesHandler = new InflectionLine();
-            List<InflectionPoint> inflectionPoints = inflectionLinesHandler.GetInflectionPoints(AffectedCoordinatePoints(coordinates, numberOfAffectedPoints));
+            List<SignalDataByTime> highPassCoordinatesByTimeWindow = AffectedCoordinatePoints(highPassCoordinates, numberOfAffectedPoints);
+            List<InflectionPoint> inflectionPoints = inflectionLinesHandler.GetInflectionPoints(highPassCoordinatesByTimeWindow, "highPass");
             ArousalStatistics result = new ArousalStatistics();
             result = GetArousalInfoForInflectionPoints(inflectionPoints, timeWindow);
-            result.SCRArousalArea = GetArousalArea(coordinates, numberOfAffectedPoints, timeWindow) ;
-            Dictionary<double, double> movingAverageCoordinates = new Dictionary<double, double>();
-            this.coordinates.TryGetValue(0, out movingAverageCoordinates);
-            SortedDictionary<double, double> movingAverageCoordinatesSorted = SortedDictionary(movingAverageCoordinates);
-            result.MovingAverage = GetMovingAverage(movingAverageCoordinatesSorted, numberOfAffectedPoints) ;
+            result.SCRArousalArea = GetArousalArea(highPassCoordinatesByTimeWindow, timeWindow) ;
+            result.MovingAverage = GetMovingAverage(signalValues, numberOfAffectedPoints) ;
+            result.GeneralArousalLevel = GetGeneralArousalLevel(result.MovingAverage);
             result.SCRAchievedArousalLevel = GetPhasicLevel(result.SCRArousalArea);
-            result.LastValue = coordinates.ElementAt(coordinates.Count - 1).Value;
-            result.LastRawSignalValue = movingAverageCoordinatesSorted.Values.ElementAt(movingAverageCoordinatesSorted.Count - 1);
-            SetMinMaxArousalArea(result.SCRArousalArea);
+            result.LastValue = highPassCoordinates.ElementAt(highPassCoordinates.Count - 1).HighPassValue;
+            result.LastRawSignalValue = signalValues.ElementAt(signalValues.Length - 1).SignalValue;
             
             return result;
         }
 
-        private SortedDictionary<double, double> SortedDictionary(Dictionary<double, double> targetDictionary)
-        {
-            SortedDictionary<double, double> sdict = new SortedDictionary<double, double>();
-            for (int i = 0; i < targetDictionary.Keys.Count; i++)
-            {
-                sdict.Add(targetDictionary.Keys.ElementAt<double>(i), targetDictionary.Values.ElementAt<double>(i));
-            }
-
-            return sdict;
-        }
-
-        private void SetMinMaxArousalArea(double scrArousalArea)
-        {
-            if (Convert.ToDouble( settings.AppSettings.Settings["MinArousalArea"].Value ).CompareTo(-1) == 0)
-            {
-                settings.AppSettings.Settings["MinArousalArea"].Value = scrArousalArea.ToString();
-            }
-            else if (scrArousalArea.CompareTo(
-                     Convert.ToDouble(settings.AppSettings.Settings["MinArousalArea"].Value)) < 0)
-            {
-                settings.AppSettings.Settings["MinArousalArea"].Value = scrArousalArea.ToString();
-            }
-
-            if (Convert.ToDouble(settings.AppSettings.Settings["MaxArousalArea"].Value).CompareTo(-1) == 0)
-            {
-                settings.AppSettings.Settings["MaxArousalArea"].Value = scrArousalArea.ToString();
-            }
-            else if (scrArousalArea.CompareTo(Convert.ToDouble(settings.AppSettings.Settings["MaxArousalArea"].Value)) > 0)
-            {
-                settings.AppSettings.Settings["MaxArousalArea"].Value = scrArousalArea.ToString();
-            }
-
-            //settings.Save(ConfigurationSaveMode.Minimal);
-            //ConfigurationManager.RefreshSection("appSettings");
-        }
-
+        /// <summary>
+        /// Define the SCL level depending on the average values of tonic amplitudes.
+        /// </summary>
+        /// 
+        /// <param name="tonicAverageAmplitude">Average values of tonic amplitudes.</param>
+        /// 
+        /// <returns>
+        /// Tonic level.
+        /// </returns>
         private int GetTonicLevel(double tonicAverageAmplitude)
         {
-            if (tonicAverageAmplitude.CompareTo(
-                GetAppValue("MinAverageTonicAmplitude")) <= 0)
+            if (Double.IsNaN(minTonicAmplitude) && Double.IsNaN(maxTonicAmplitude))
             {
-                settings.AppSettings.Settings["MinAverageTonicAmplitude"].Value = tonicAverageAmplitude.ToString();
+                minTonicAmplitude = tonicAverageAmplitude;
+                maxTonicAmplitude = tonicAverageAmplitude;
+                return arousalLevel / 2;
+            }
+            
+            if (tonicAverageAmplitude.CompareTo(minTonicAmplitude) <= 0)
+            {
+                minTonicAmplitude = tonicAverageAmplitude;
                 return 1;
             }
 
-            if (tonicAverageAmplitude.CompareTo(
-                GetAppValue("MaxAverageTonicAmplitude")) >= 0)
+            if (tonicAverageAmplitude.CompareTo(maxTonicAmplitude) >= 0)
             {
-                settings.AppSettings.Settings["MaxAverageTonicAmplitude"].Value = tonicAverageAmplitude.ToString();
+                maxTonicAmplitude = tonicAverageAmplitude;
                 return arousalLevel;
             }
 
-            //settings.Save(ConfigurationSaveMode.Minimal);
-            //ConfigurationManager.RefreshSection("appSettings");
-
-            double step = (arousalLevel != 0) ? (GetAppValue("MaxAverageTonicAmplitude") - GetAppValue("MinAverageTonicAmplitude")) / arousalLevel : 0.0;
-            return (step.CompareTo(0.0) != 0) ? (int)Math.Ceiling((tonicAverageAmplitude -
-                GetAppValue("MinAverageTonicAmplitude")) / step) : 0;
+            double step = (arousalLevel != 0) ? (maxTonicAmplitude - minTonicAmplitude) / arousalLevel : 0.0;
+            return (step.CompareTo(0.0) != 0) ? (int)Math.Ceiling((tonicAverageAmplitude - minTonicAmplitude) / step) : 0;
         }
 
+        /// <summary>
+        /// Define the phasic level depending on the phasic arousal area.
+        /// </summary>
+        /// 
+        /// <param name="scrArousalArea">SCR arousal area.</param>
+        /// 
+        /// <returns>
+        /// Phasic level (the level of arousal).
+        /// </returns>
         private int GetPhasicLevel(double scrArousalArea)
         {
-            if (scrArousalArea.CompareTo(Convert.ToDouble(settings.AppSettings.Settings["MinAverageArousalArea"].Value)) <= 0)
+            if(Double.IsNaN(minArousalArea) && Double.IsNaN(maxArousalArea))
             {
-                settings.AppSettings.Settings["MinAverageArousalArea"].Value = scrArousalArea.ToString();
+                minArousalArea = scrArousalArea;
+                maxArousalArea = scrArousalArea;
+                return arousalLevel / 2;
+            }
+            if (scrArousalArea.CompareTo(minArousalArea) <= 0)
+            {
+                minArousalArea = scrArousalArea;
                 return 1;
             }
 
-            if(scrArousalArea.CompareTo(Convert.ToDouble(settings.AppSettings.Settings["MaxAverageArousalArea"].Value)) >= 0)
+            if(scrArousalArea.CompareTo(maxArousalArea) >= 0)
             {
-                settings.AppSettings.Settings["MaxAverageArousalArea"].Value = scrArousalArea.ToString();
+                maxArousalArea = scrArousalArea;
                 return arousalLevel;
             }
 
-            //settings.Save(ConfigurationSaveMode.Minimal);
-            //ConfigurationManager.RefreshSection("appSettings");
-
-            double step = (arousalLevel != 0) ?(GetAppValue("MaxAverageArousalArea") - GetAppValue("MinAverageArousalArea")) / arousalLevel : 0.0;
-            return (step.CompareTo(0.0) != 0) ? (int)Math.Ceiling((scrArousalArea - GetAppValue("MinAverageArousalArea")) / step) : 0;
+            double step = (arousalLevel != 0) ? (maxArousalArea - minArousalArea) / arousalLevel : 0.0;
+            return (step.CompareTo(0.0) != 0) ? (int)Math.Ceiling((scrArousalArea - minArousalArea) / step) : 0;
         }
 
-        public TonicStatistics GetTonicStatistics(Dictionary<double, double> tonicCoordinates)
+        /// <summary>
+        /// Define the general arousal level depending on the moving average.
+        /// </summary>
+        /// 
+        /// <param name="movingAverage">average of signal amplitudes (after median filter) for the last time window</param>
+        /// 
+        /// <returns>
+        /// General level of arousal.
+        /// </returns>
+        private int GetGeneralArousalLevel(double movingAverage)
+        {
+            if(Double.IsNaN(minMovingAverage) && Double.IsNaN(maxMovingAverage))
+            {
+                minMovingAverage = 0.75*movingAverage;
+                maxMovingAverage = 1.25*movingAverage;
+            }
+
+            if (movingAverage.CompareTo(minMovingAverage) <= 0)
+            {
+                minMovingAverage = movingAverage;
+                return 1;
+            }
+
+            if(movingAverage.CompareTo(maxMovingAverage) >= 0)
+            {
+                maxMovingAverage = movingAverage;
+                return arousalLevel;
+            }
+
+            double step = (arousalLevel != 0) ? (maxMovingAverage - minMovingAverage) / arousalLevel : 0.0;
+            return (step.CompareTo(0.0) != 0) ? (int)Math.Ceiling((movingAverage - minMovingAverage) / step) : 0;
+        }
+
+        /// <summary>
+        /// Return tonic statistic.
+        /// </summary>
+        /// 
+        /// <param name="tonicCoordinates">List of SCL tonic signal values.</param>
+        /// 
+        /// <returns>
+        /// Tonic statistic for a specified lst of SCL tonic signal values.
+        /// </returns>
+        public TonicStatistics GetTonicStatistics(List<SignalDataByTime> tonicCoordinates)
+        {
+            InflectionLine inflectionLinesHandler = new InflectionLine();
+            List<InflectionPoint> inflectionPoints = inflectionLinesHandler.GetInflectionPoints(AffectedCoordinatePoints(tonicCoordinates, tonicCoordinates.Count), "lowPass");
+            return GetTonicStatisticsForPoints(inflectionPoints);
+        }
+
+        /// <summary>
+        /// Return tonic statistic.
+        /// </summary>
+        /// 
+        /// <param name="tonicCoordinates">List of SCL tonic signal values.</param>
+        /// <param name="numberOfAffectedPoints">Number of affected points.</param>
+        /// 
+        /// <returns>
+        /// Tonic statistic for a specified lst of SCL tonic signal values.
+        /// </returns>
+        public TonicStatistics GetTonicStatistic(List<SignalDataByTime> tonicCoordinates, int numberOfAffectedPoints)
         {
 
             InflectionLine inflectionLinesHandler = new InflectionLine();
-            List<InflectionPoint> inflectionPoints = inflectionLinesHandler.GetInflectionPoints(AffectedCoordinatePoints(tonicCoordinates, tonicCoordinates.Count));
+            List<InflectionPoint> inflectionPoints = inflectionLinesHandler.GetInflectionPoints(AffectedCoordinatePoints(tonicCoordinates, numberOfAffectedPoints), "lowPass");
 
             return GetTonicStatisticsForPoints(inflectionPoints);
         }
 
-        public TonicStatistics GetTonicStatistic(Dictionary<double, double> tonicCoordinates, int numberOfAffectedPoints)
-        {
-
-            InflectionLine inflectionLinesHandler = new InflectionLine();
-            List<InflectionPoint> inflectionPoints = inflectionLinesHandler.GetInflectionPoints(AffectedCoordinatePoints(tonicCoordinates, numberOfAffectedPoints));
-
-            return GetTonicStatisticsForPoints(inflectionPoints);
-        }
-
-
-        public TonicStatistics GetTonicStatistic(Dictionary<double, double> coordinates, double timeWindow, TimeWindowMeasure timewindowType, int sampleRate)
-        {
-            if (timeWindow.CompareTo(0) <= 0 || sampleRate <= 0 || coordinates.Count <= 0) return null;
-            int numberOfAffectedPoints = GetNumberOfAffectedPoints(timeWindow, timewindowType, sampleRate);
-
-            if (coordinates.Count < numberOfAffectedPoints) return GetTonicStatistics(coordinates);
-
-            return GetTonicStatistic(coordinates, numberOfAffectedPoints);
-        }
-
-        private int GetNumberOfAffectedPoints(double timeWindow, TimeWindowMeasure timewindowType, int sampleRate)
+        /// <summary>
+        /// Calculate number of affected signal values depending on time window.
+        /// </summary>
+        /// 
+        /// <param name="coordinates">List of all signal values stored in the cache.</param>
+        /// <param name="timeWindow">Time wondow.</param>
+        /// <param name="sampleRate">Sample rate.</param>
+        /// 
+        /// <returns>
+        /// Number of affected signal values.
+        /// </returns>
+        private int GetNumberOfAffectedPoints(List<SignalDataByTime> coordinates, double timeWindow, TimeWindowMeasure timewindowType, int sampleRate)
         {
             timeWindow = timewindowType.Equals(TimeWindowMeasure.Milliseconds) ? (timeWindow/1000) : timeWindow;
-            int numberOfAffectedPoints = Convert.ToInt32((1000.0 / sampleRate) * timeWindow);
+            int numberOfAffectedPoints = Convert.ToInt32((1000.0 / sampleRate) * timeWindow, CultureInfo.InvariantCulture);
+            double minAcceptableTime = timeWhenSignalValuesAreExtracted - timeWindow * 1000;
+
+            if (coordinates.Count < numberOfAffectedPoints) return coordinates.Count;
+
+            for (int i = (coordinates.Count - numberOfAffectedPoints - 1); i < coordinates.Count; i++)
+            {
+                if (coordinates[i].Time < minAcceptableTime)
+                {
+                    numberOfAffectedPoints--;
+                }
+                else
+                {
+                    break;
+                }
+
+            }
+
+            if ((coordinates.Count - numberOfAffectedPoints) > 1)
+            {
+                for (int i = (coordinates.Count - numberOfAffectedPoints - 2); i > -1; i--)
+                {
+                    if(coordinates[i].Time >= minAcceptableTime)
+                    {
+                        numberOfAffectedPoints++;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
 
             return numberOfAffectedPoints;
         }
 
+        /// <summary>
+        /// Calculate SCL features: min/mean/max of the tonic amplitude and tonic slope.
+        /// </summary>
+        /// 
+        /// <param name="inflectionPoints">List of SCL tonic signal values.</param>
+        /// 
+        /// <returns>
+        /// Tonic statistic for a specified lst of SCL tonic signal values.
+        /// </returns>
         private TonicStatistics GetTonicStatisticsForPoints(List<InflectionPoint> inflectionPoints)
         {
             TonicStatistics result = new TonicStatistics();
@@ -355,82 +399,73 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
             result.Slope = (tonicCoordinateYLast - tonicCoordinateYFirst) / (tonicCoordinateXLast - tonicCoordinateXFirst);
 
             List<double> allMaximums = new List<double>();
-
             double minTonic = inflectionPoints.ElementAt(0).CoordinateY;
-            double maxTonic = inflectionPoints.ElementAt(0).CoordinateY;
+            double maxTonic = inflectionPoints.ElementAt(inflectionPoints.Count - 1).CoordinateY;
+
             double sumMaximums = 0;
 
-            for (int i = 1; i < (inflectionPoints.Count - 1); i++)
+            for (int i = 0; i < inflectionPoints.Count; i++)
             {
-
-                double currentY = inflectionPoints.ElementAt(i).CoordinateY;
-                minTonic = (minTonic > currentY) ? currentY : minTonic;
-                maxTonic = (maxTonic < currentY) ? currentY : maxTonic;
-
-                double previousY = inflectionPoints.ElementAt(i - 1).CoordinateY;
-                double currentAmplitude = currentY - previousY;
-
                 if (inflectionPoints.ElementAt(i).ExtremaType.Equals(ExtremaType.Maximum))
                 {
+                    double currentY = inflectionPoints.ElementAt(i).CoordinateY;
+                    minTonic = (minTonic.CompareTo(currentY) > 0 && !currentY.Equals(0.0)) ? currentY : minTonic;
+                    maxTonic = (maxTonic.CompareTo(currentY) < 0) ? currentY : maxTonic;
+
+                    double currentAmplitude = currentY;
                     allMaximums.Add(currentAmplitude);
                     sumMaximums += currentAmplitude;
                 }
-
             }
 
             result.MinAmp = minTonic;
             result.MaxAmp = maxTonic;
-
-            decimal mean = (allMaximums != null && allMaximums.Count > 0) ? Convert.ToDecimal(sumMaximums / allMaximums.Count) : 0;
+            decimal mean = GetTonicMean(allMaximums, sumMaximums, result.MeanAmp);
 
             result.StdDeviation = GetStandardDeviation(allMaximums, mean);
-            //result.SCLAchievedArousalLevel = GetTonicLevel(result.MeanAmp);
-
-            SetMinMaxTonicAmplitude(result.MinAmp, result.MaxAmp);
 
             return result;
         }
 
-        private void SetMinMaxTonicAmplitude(double minAmp, double maxAmp)
+        private static decimal GetTonicMean(List<double> allMaximums, double sumMaximums, double tonicMeanAmp)
         {
-            if (Convert.ToDouble(GetAppValue("MinTonicAmplitude")).CompareTo(100) == 0)
-            {
-                settings.AppSettings.Settings["MinTonicAmplitude"].Value = minAmp.ToString();
-            }
-            else if (minAmp.CompareTo(Convert.ToDouble(GetAppValue("MinTonicAmplitude"))) < 0)
-            {
-                settings.AppSettings.Settings["MinTonicAmplitude"].Value = minAmp.ToString();
-            }
-
-            if (Convert.ToDouble(GetAppValue("MaxTonicAmplitude")).CompareTo(-100) == 0)
-            {
-                settings.AppSettings.Settings["MaxTonicAmplitude"].Value = maxAmp.ToString();
-            }
-            else if (maxAmp.CompareTo(Convert.ToDouble(GetAppValue("MaxTonicAmplitude"))) > 0)
-            {
-                settings.AppSettings.Settings["MaxTonicAmplitude"].Value = maxAmp.ToString();
-            }
-
-            //settings.Save(ConfigurationSaveMode.Minimal);
-            //ConfigurationManager.RefreshSection("appSettings"); ;
+            if (allMaximums.Count == 1) return Convert.ToDecimal(tonicMeanAmp, CultureInfo.InvariantCulture);
+            return (allMaximums != null && allMaximums.Count > 0) ? Convert.ToDecimal(sumMaximums / allMaximums.Count, CultureInfo.InvariantCulture) : 0;
         }
 
-        private double GetMovingAverage(SortedDictionary<double, double> coordinates, int numberOfAffectedPoints)
+        /// <summary>
+        /// Calculate average of amplitudes of the GSR signal values that is an indicator for the general arousal. 
+        /// </summary>
+        ///
+        /// <param name="coordinates"> List of GSR signal values. </param>
+        /// <param name="numberOfAffectedPoints"> Number of signal values (depending on time window) that should participate in the calculation. </param>
+        ///
+        /// <returns>
+        /// Average of GSR signal amplitudes.
+        /// </returns>
+        private double GetMovingAverage(SignalDataByTime[] coordinates, int numberOfAffectedPoints)
         {
             double movingAverage = 0;
-            //Logger.Log(".................... movingaverage = " + movingAverage);
-            for (int i = (coordinates.Count - numberOfAffectedPoints); i < coordinates.Count; i++)
+            for (int i = (coordinates.Length - numberOfAffectedPoints); i < coordinates.Length; i++)
             {
-                movingAverage += Math.Abs(coordinates.ElementAt(i).Value);
-                //Logger.Log("Moving average test: " + coordinates.ElementAt(i).Value);
+                movingAverage += Math.Abs(coordinates.ElementAt(i).SignalValue);
             }
-            //Logger.Log(".................... movingaverage = " + movingAverage);
-            //Logger.Log(".................... numberOfAffectedPoints = " + numberOfAffectedPoints);
 
             return (movingAverage / numberOfAffectedPoints);
         }
 
-        private double GetArousalArea(Dictionary<double, double> coordinates, int numberOfAffectedPoints, double timeWindow)
+        /// <summary>
+        /// Calculate area of the signal. 
+        /// </summary>
+        ///
+        /// <param name="coordinates"> List of inflection points. </param>
+        /// <param name="numberOfAffectedPoints"> Number of signal values (depending on time window) that should participate in the calculation. </param>
+        /// <param name="timeWindow"> Time window. </param>
+        ///
+        /// <returns>
+        /// Area of the signal.
+        /// </returns>
+        private double GetArousalArea(List<SignalDataByTime> coordinates, double timeWindow)
         {
             /*
             * For each one point P1 we take the next one P2 and
@@ -442,18 +477,18 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
             * Pm is the intercept point between the line (P1, P2) and y=0
             */
             double area = 0;
-            //Logger.Log(".................... area = " + area);
 
-            SortedDictionary<double, double> srtCoordinates = SortedDictionary(coordinates);
-            for(int i = (coordinates.Count - numberOfAffectedPoints); i < (coordinates.Count - 1); i++)
+            for(int i = 0; i < (coordinates.Count - 1); i++)
             {
                 
                 if (i < (coordinates.Count - 2))
                 {
-                    double x1 = srtCoordinates.ElementAt(i).Key;
-                    double y1 = srtCoordinates.ElementAt(i).Value;
-                    double x2 = srtCoordinates.ElementAt(i + 1).Key;
-                    double y2 = srtCoordinates.ElementAt(i + 1).Value;
+                    double x1 = coordinates.ElementAt(i).Time;
+                    double y1 = coordinates.ElementAt(i).SignalValue;
+                    //double y1 = coordinates.ElementAt(i).HighPassValue;
+                    double x2 = coordinates.ElementAt(i + 1).Time;
+                    double y2 = coordinates.ElementAt(i + 1).SignalValue;
+                    //double y2 = coordinates.ElementAt(i + 1).HighPassValue;
 
                     if ( y1*y2 >= 0 )
                     {
@@ -471,12 +506,22 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
                 }
             }
 
-            //Logger.Log(".................... area = " + area);
-            //Logger.Log(".................... timeWindow = " + timeWindow);
-
             return (area / timeWindow);
         }
 
+        /// <summary>
+        /// Calculate following arousal features: 
+        /// - SCR Amplitude;
+        /// - SCR Rise
+        /// - SCR Recovery
+        /// </summary>
+        ///
+        /// <param name="inflectionPoints"> List of inflection points. </param>
+        /// <param name="timeWindow"> Time window. </param>
+        ///
+        /// <returns>
+        /// Arousal statistic with information for SCR Amplitude, SCR Rise, and SCR Recovery.
+        /// </returns>
         public ArousalStatistics GetArousalInfoForInflectionPoints(List<InflectionPoint> inflectionPoints, double timeWindow)
         {
             InflectionLine inflectionLinesHandler = new InflectionLine();
@@ -491,445 +536,366 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
             double sumMaximums = 0;
             double sumRises = 0;
             double sumRecoveryTime = 0;
+            int indexPreviousMinimum = -1;
+            int indexNextMinimum = -1;
+            bool passInitialization = false;
+            bool passInitializationRice = false;
+            bool isRecoveryExist = false;
 
-            for (int i = 0; i < (inflectionPoints.Count - 1); i++)
+            for (int i = 0; i < (inflectionPoints.Count); i++)
             {
-                double x0 = (i > 0) ? inflectionPoints.ElementAt(i - 1).CoordinateX : inflectionPoints.ElementAt(0).CoordinateX;
-                double y0 = (i > 0) ? inflectionPoints.ElementAt(i - 1).CoordinateY : 0;
-                double x1 = inflectionPoints.ElementAt(i).CoordinateX;
-                double y1 = inflectionPoints.ElementAt(i).CoordinateY;
-                double x2 = inflectionPoints.ElementAt(i + 1).CoordinateX;
-                double y2 = inflectionPoints.ElementAt(i + 1).CoordinateY;
-                double currentAmplitude = y1 - y0;
+                if(inflectionPoints.ElementAt(i).ExtremaType.Equals(ExtremaType.Minimum))
+                {
+                    indexPreviousMinimum = i;
+                }
 
-                if (inflectionPoints.ElementAt(i).ExtremaType.Equals(ExtremaType.Maximum)) {
+                if (inflectionPoints.ElementAt(i).ExtremaType.Equals(ExtremaType.Maximum))
+                {
+                    //for rise statistics we have to find previous min. current maximum and next minimum
+                    double x0 = (indexPreviousMinimum > -1) ? inflectionPoints.ElementAt(indexPreviousMinimum).CoordinateX : inflectionPoints.ElementAt(0).CoordinateX;
+                    double x1 = inflectionPoints.ElementAt(i).CoordinateX;
+                    double y1 = inflectionPoints.ElementAt(i).CoordinateY;
+
+                    //searching for the next minimum
+                    for(int j = (i + 1); j < inflectionPoints.Count; j++)
+                    {
+                        if(inflectionPoints.ElementAt(j).ExtremaType.Equals(ExtremaType.Minimum))
+                        {
+                            indexNextMinimum = j;
+                            indexPreviousMinimum = indexNextMinimum;
+                            isRecoveryExist = true;
+                            break;
+                        }
+                    }
+
+                    double x2 = (isRecoveryExist) ? inflectionPoints.ElementAt(indexNextMinimum).CoordinateX : 0.0;
+                    isRecoveryExist = isRecoveryExist && (x2 - x1).CompareTo(0.1) > 0;
+
+                    double currentAmplitude = y1;
+
                     double currentRise = x1 - x0;
-                    double currentRecouvery = (x1 + x2) / 2 - x1;
-                    if (i == 0 || i == 1)
+                    double currentRecouvery = (isRecoveryExist) ? (x2 - x1) / 2 : 0.0;
+
+                    if (!passInitialization)
                     {
                         scrAmplitude.Maximum = currentAmplitude;
-                        scrAmplitude.Minimum = scrAmplitude.Maximum;
-                        if (i > 0)
-                        {
-                            scrRise.Maximum = currentRise;
-                            scrRise.Minimum = currentRise;
-                            allRises.Add(currentRise);
+                        scrAmplitude.Minimum = currentAmplitude;
 
+                        if (isRecoveryExist && currentRecouvery.CompareTo(0.0) > 0)
+                        {
                             scrRecovery.Maximum = currentRecouvery;
                             scrRecovery.Minimum = currentRecouvery;
-                            allRecoveryTimes.Add(currentRecouvery);
                         }
+
+                        passInitialization = true;
                     }
                     else 
                     {
                         scrAmplitude.Maximum = (scrAmplitude.Maximum.CompareTo(currentAmplitude) < 0) ? currentAmplitude : scrAmplitude.Maximum;
                         scrAmplitude.Minimum = (scrAmplitude.Minimum.CompareTo(currentAmplitude) > 0 && currentAmplitude.CompareTo(0.0) != 0) ? currentAmplitude : scrAmplitude.Minimum;
 
+                        if (isRecoveryExist && currentRecouvery.CompareTo(0.0) > 0)
+                        {
+                            scrRecovery.Maximum = (scrRecovery.Maximum.CompareTo(currentRecouvery) < 0) ? currentRecouvery : scrRecovery.Maximum;
+                            scrRecovery.Minimum = (scrRecovery.Minimum.CompareTo(currentRecouvery) > 0) ? currentRecouvery : scrRecovery.Minimum;
+                        }
+                    }
+
+                    if (i > 0 && !passInitializationRice && (currentRise.CompareTo(0.1) > 0))
+                    {
+                        scrRise.Maximum = currentRise;
+                        scrRise.Minimum = currentRise;
+
+                        passInitializationRice = true;
+                    }
+                    else if (i > 0 && passInitializationRice && (currentRise.CompareTo(0.1) > 0))
+                    {
                         scrRise.Maximum = (scrRise.Maximum.CompareTo(currentRise) < 0) ? currentRise : scrRise.Maximum;
                         scrRise.Minimum = (scrRise.Minimum.CompareTo(currentRise) > 0) ? currentRise : scrRise.Minimum;
+                    }
 
-                        scrRecovery.Maximum = (scrRecovery.Maximum.CompareTo(currentRecouvery) < 0) ? currentRecouvery : scrRecovery.Maximum;
-                        scrRecovery.Minimum = (scrRecovery.Minimum.CompareTo(currentRecouvery) > 0) ? currentRecouvery : scrRecovery.Minimum;
+                    if (isRecoveryExist && currentRecouvery.CompareTo(0.0) > 0)
+                    {
+                        allRecoveryTimes.Add(currentRecouvery);
+                        sumRecoveryTime += currentRecouvery;
                     }
 
                     allMaximums.Add(currentAmplitude);
                     sumMaximums += currentAmplitude;
 
-                    if (i > 0)
+                    if ((i > 0) && (currentRise.CompareTo(0.1) > 0))
                     {
+
                         allRises.Add(currentRise);
                         sumRises += currentRise;
-
-                        allRecoveryTimes.Add(currentRecouvery);
-                        sumRecoveryTime += currentRecouvery;
                     }
+
+                    if(isRecoveryExist) i = indexNextMinimum;
                 }
+
+                isRecoveryExist = false;
             }
 
-            scrAmplitude.Mean = (allMaximums != null && allMaximums.Count > 0) ? Convert.ToDecimal(sumMaximums / allMaximums.Count) : 0;
+            scrAmplitude.Mean = (allMaximums != null && allMaximums.Count > 0) ? Convert.ToDecimal(sumMaximums / allMaximums.Count, CultureInfo.InvariantCulture) : 0;
             scrAmplitude.Count = allMaximums.Count / timeWindow ;
             scrAmplitude.StdDeviation = GetStandardDeviation(allMaximums, scrAmplitude.Mean);
             arousalStat.SCRAmplitude = scrAmplitude;
 
-            scrRise.Mean = (allRises != null && allRises.Count > 0) ? Convert.ToDecimal(sumRises / allRises.Count) : 0;
+            scrRise.Mean = (allRises != null && allRises.Count > 0) ? Convert.ToDecimal(sumRises / allRises.Count, CultureInfo.InvariantCulture) : 0;
             scrRise.Count = allRises.Count / timeWindow ;
             scrRise.StdDeviation = GetStandardDeviation(allRises, scrRise.Mean);
             arousalStat.SCRRise = scrRise;
 
-            scrRecovery.Mean = (allRecoveryTimes != null && allRecoveryTimes.Count > 0) ? Convert.ToDecimal(sumRecoveryTime / allRecoveryTimes.Count) : 0;
+            scrRecovery.Mean = (allRecoveryTimes != null && allRecoveryTimes.Count > 0) ? Convert.ToDecimal(sumRecoveryTime / allRecoveryTimes.Count, CultureInfo.InvariantCulture) : 0;
             scrRecovery.Count = allRecoveryTimes.Count / timeWindow ;
-            scrRise.StdDeviation = GetStandardDeviation(allRecoveryTimes, scrRecovery.Mean);
+            scrRecovery.StdDeviation = GetStandardDeviation(allRecoveryTimes, scrRecovery.Mean);
             arousalStat.SCRRecoveryTime = scrRecovery;
-            
 
             return arousalStat;
         }
 
-        private double GetLineBetween2Points(InflectionPoint point1, InflectionPoint point2, double x)
-        {
-            double dx = point2.CoordinateX - point1.CoordinateX;  //This part has problem in your code
-            if (dx == 0)
-                return float.NaN;
-            var a = (point2.CoordinateY - point1.CoordinateY) / dx;
-            var b = point1.CoordinateY - (a * point1.CoordinateX);
-
-            return a * x + b;
-        }
-
-        private decimal GetStandardDeviation(List<double> allMaximums, decimal mean)
+        /// <summary>
+        /// Calculate standard deviation of a list of numbers 
+        /// </summary>
+        ///
+        /// <param name="listOfNumbers"> List of numbers. </param>
+        /// <param name="mean"> Mean of the list listOfNumbers. </param>
+        ///
+        /// <returns>
+        /// Standard deviation.
+        /// </returns>
+        private decimal GetStandardDeviation(List<double> listOfNumbers, decimal mean)
         {
             double stdDeviation = 0;
-            foreach(double localMaximum in allMaximums)
+            foreach(double currentNumber in listOfNumbers)
             {
-                stdDeviation += Math.Pow((localMaximum - (double)mean), 2);
+                stdDeviation += Math.Pow((currentNumber - (double)mean), 2);
             }
 
-            return (allMaximums.Count > 0) ? Convert.ToDecimal(Math.Sqrt(stdDeviation / allMaximums.Count)) : 0;
+            return (listOfNumbers.Count > 0) ? Convert.ToDecimal(Math.Sqrt(stdDeviation / listOfNumbers.Count), CultureInfo.InvariantCulture) : 0;
         }
 
-        public List<InflectionPoint> AffectedCoordinatePoints(Dictionary<double, double> coordinates, int numberOfAffectedPoints)
+        /// <summary>
+        /// Define signal values that will be included in calculations of EDA features.
+        /// </summary>
+        ///
+        /// <param name="signalValueInCache"> List with all signal value store in the cache. </param>
+        /// <param name="numberOfAffectedPoints"> Number of affected signal values. </param>
+        ///
+        /// <returns>
+        /// List of signal values that will be included in calculations of EDA features.
+        /// </returns>
+        public List<SignalDataByTime> AffectedCoordinatePoints(List<SignalDataByTime> signalValueInCache, int numberOfAffectedPoints)
         {
-            List<InflectionPoint> result = new List<InflectionPoint>();
+            List<SignalDataByTime> result = new List<SignalDataByTime>();
 
-            for (int i = (coordinates.Count - numberOfAffectedPoints); i < coordinates.Count - 1; i++)
+            for (int i = (signalValueInCache.Count - numberOfAffectedPoints); i < signalValueInCache.Count - 1; i++)
             {
-                result.Add(new InflectionPoint(coordinates.ElementAt(i).Key, coordinates.ElementAt(i).Value, i));
+                result.Add(signalValueInCache.ElementAt(i));
             }
 
             return result;
         }
 
-        //print all values from the binary file - used for test
-        public void PrintChannelsValues()
-        {
-            foreach (KeyValuePair<int, List<double>> member in channelsValues)
-            {
-                Logger.Log("Channel with number: " + member.Key);
-                List<double> valuesPerChannel = member.Value;
-                foreach (int value in valuesPerChannel)
-                {
-                    Logger.Log("value: " + value);
-                }
-            }
-        }
-
-        public void FillCoordinates(int samplerate)
-        {
-            //coordinates save the received GSR value for a millisecond
-            coordinates = new Dictionary<int, Dictionary<double, double>>();
-
-            foreach (KeyValuePair<int, List<double>> entry in channelsValues)
-            {
-                int currentChannel = entry.Key;
-                List<double> channelValues = entry.Value;
-
-                
-                Dictionary<double, double> currentChannelCoordinates = new Dictionary<double, double>();
-                int channelValuesCount = channelValues.Count;
-                for (int i = channelValuesCount - 1; i > -1; i--)
-                {
-                    //TODO: to be calculate according to the sample rate value
-                    double time = gsrValuesReadTime - (channelValuesCount - i - 1) * (1000/samplerate);
-                    double gsrValue = (channelValues[i]);
-                    //double gsrValue = (1 / channelValues[i]) * 4000;
-                    if (!currentChannelCoordinates.ContainsKey(time))
-                    {
-                        currentChannelCoordinates.Add(time, gsrValue);
-                    }
-                }
-
-                if (!coordinates.ContainsKey(currentChannel))
-                {
-                    coordinates.Add(currentChannel, currentChannelCoordinates);
-                }
-            }
-        }
-
-        public Dictionary<int, Dictionary<double, double>> GetCoordinates()
-        {
-            return coordinates;
-        }
-
+        /// <summary>
+        /// Convert an ArousalStatistics object in JSON string.
+        /// </summary>
+        ///
+        /// <param name="statisticObject">The target arousal statistics</param>
+        ///
+        /// <returns>
+        /// The arousal statistic in JSON format.
+        /// </returns>
         public string GetJSONArousalStatistics(ArousalStatistics statisticObject)
         {
+            
             JavaScriptSerializer js = new JavaScriptSerializer();
             string json = js.Serialize(statisticObject);
-
-           // Logger.Log("jsonObject: " + json);
 
             return json;
         }
 
+        /// <summary>
+        /// Calculate SCR features.
+        /// </summary>
+        /// 
+        /// <returns>
+        /// The arousal statistic for default time window.
+        /// </returns>
         public ArousalStatistics GetArousalStatistics()
         {
             return GetArousalStatistics(defaultTimeWindow, TimeWindowMeasure.Seconds);
         }
 
+        /// <summary>
+        /// Calculate SCR features.
+        /// </summary>
+        /// 
+        /// <param name="timeWindow">The time window.</param>
+        /// <param name="timeScale">The time scale - it can be in milliseconds or in seconds.</param>
+        /// 
+        /// <returns>
+        /// The arousal statistic according to the specified time window.
+        /// </returns>
         public ArousalStatistics GetArousalStatistics(double timeWindow, TimeWindowMeasure timeScale)
         {
-            ISignalDeviceController signalController = new GSRHRDevice();
-
-            Dictionary<int, List<double>> channelsValues = ExtractChannelsValues();
-            //Dictionary<int, List<double>> channelsValues = gsrHandler.ExtractChannelsValuesFromFile();
-
-            int sampleRate = signalController.GetSignalSampleRate();
-            FillCoordinates(sampleRate);
-
-            Dictionary<int, Dictionary<double, double>> medianFilterCoordinates = GetMedianFilterPoints(coordinates);
-            if (medianFilterCoordinates != null) return GetArousalStatisticsByMedianFilter(medianFilterCoordinates.Values.ElementAt(GSR_CHANNEL), timeWindow, timeScale);
-
-            return null;
+            signalValues = GetSignalValues();
+            //The signal values receved by device are already filtered (we give the average of eight sequence values).
+            //Therefore it is not needed to apply other filter.
+            SignalDataByTime[] medianFilterCoordinates = GetMedianFilterPoints(signalValues);
+            if (medianFilterCoordinates != null) return GetArousalStatisticsByMedianFilter(medianFilterCoordinates, timeWindow, timeScale);
+            return GetArousalStatisticsByMedianFilter(signalValues, timeWindow, timeScale); ;
         }
 
-        public ArousalStatistics GetArousalStatisticsByMedianFilter(Dictionary<double, double> medianFilterCoordinates, double timeWindow, TimeWindowMeasure timeMeasure)
+        /// <summary>
+        /// Calculate SCR features after aplying median filter on the signal values.
+        /// </summary>
+        /// 
+        /// <param name="medianFilterCoordinates">List of new signal values after aplying median filter on raw signal values.</param>
+        /// <param name="timeWindow">The time window.</param>
+        /// <param name="timeMeasure">The time scale - it can be in milliseconds or in seconds.</param>
+        /// 
+        /// <returns>
+        /// The arousal statistic according to the specified time window.
+        /// </returns>
+        public ArousalStatistics GetArousalStatisticsByMedianFilter(SignalDataByTime[] medianFilterCoordinates, double timeWindow, TimeWindowMeasure timeMeasure)
         {
-            ArousalStatistics result = new ArousalStatistics();
-            ISignalDeviceController signalController = new GSRHRDevice();
-            int sampleRate = signalController.GetSignalSampleRate();
-            ButterworthFilterCoordinates butterworthFilterCoordinates = new ButterworthFilterCoordinates();
-            Dictionary<double, double> lowPassFilterCoordinates = new Dictionary<double, double>();
-            Dictionary<double, double> highPassFilterCoordinates = new Dictionary<double, double>();
-
             if(timeWindow.CompareTo(0.0) <= 0)
             {
                 timeWindow = defaultTimeWindow;
                 timeMeasure = TimeWindowMeasure.Seconds;
             }
 
-            medianFilterCoordinates = medianFilterCoordinates.OrderBy(key => key.Key).ToDictionary((keyItem) => keyItem.Key, (valueItem) => valueItem.Value);
-            butterworthFilterCoordinates = GetButterworthHighLowPassCoordinates(sampleRate, medianFilterCoordinates);
-            lowPassFilterCoordinates = butterworthFilterCoordinates.LowPassCoordinates;
-            highPassFilterCoordinates = butterworthFilterCoordinates.HighPassCoordinates;
-
-            ArousalStatistics butterworthStatistics = GetInflectionPoints(highPassFilterCoordinates, sampleRate, timeWindow, timeMeasure);
+            ArousalStatistics butterworthStatistics = GetArousalStatistics(medianFilterCoordinates.ToList(), timeWindow, timeMeasure, sampleRate);
             if (butterworthStatistics != null)
             {
-                butterworthStatistics.TonicStatistics = GetTonicStatistics(lowPassFilterCoordinates);
+                butterworthStatistics.TonicStatistics = GetTonicStatistics(medianFilterCoordinates.ToList());
                 butterworthStatistics.SCLAchievedArousalLevel = GetTonicLevel(butterworthStatistics.TonicStatistics.MeanAmp);
+                butterworthStatistics.LowPassSignalValue = medianFilterCoordinates[medianFilterCoordinates.Count() - 1].LowPassValue;
+                butterworthStatistics.HighPassSignalValue = medianFilterCoordinates[medianFilterCoordinates.Count() - 1].HighPassValue;
+                butterworthStatistics.LastMedianFilterValue = medianFilterCoordinates[medianFilterCoordinates.Count() - 1].SignalValue;
             }
-
-            /*
-            Logger.Log("StartMMM........................");
-            if (medianFilterCoordinates.Count > 4) Logger.Log(medianFilterCoordinates.Values.ElementAt(medianFilterCoordinates.Count - 4).ToString());
-            if (medianFilterCoordinates.Count > 3) Logger.Log(medianFilterCoordinates.ElementAt(medianFilterCoordinates.Count - 3).ToString());
-            if (medianFilterCoordinates.Count > 2) Logger.Log(medianFilterCoordinates.ElementAt(medianFilterCoordinates.Count - 2).ToString());
-            if (medianFilterCoordinates.Count > 1) Logger.Log(medianFilterCoordinates.ElementAt(medianFilterCoordinates.Count - 1).ToString());
-            Logger.Log("EndMMM..........................");
-            Logger.Log("StartHigh........................");
-            if (butterworthFilterCoordinates.HighPassCoordinates.Count > 4) Logger.Log(butterworthFilterCoordinates.HighPassCoordinates.Values.ElementAt(butterworthFilterCoordinates.HighPassCoordinates.Count - 4).ToString());
-            if (butterworthFilterCoordinates.HighPassCoordinates.Count > 3) Logger.Log(butterworthFilterCoordinates.HighPassCoordinates.ElementAt(butterworthFilterCoordinates.HighPassCoordinates.Count - 3).ToString());
-            if (butterworthFilterCoordinates.HighPassCoordinates.Count > 2) Logger.Log(butterworthFilterCoordinates.HighPassCoordinates.ElementAt(butterworthFilterCoordinates.HighPassCoordinates.Count - 2).ToString());
-            if (butterworthFilterCoordinates.HighPassCoordinates.Count > 1) Logger.Log(butterworthFilterCoordinates.HighPassCoordinates.ElementAt(butterworthFilterCoordinates.HighPassCoordinates.Count - 1).ToString());
-            Logger.Log("EndHigh..........................");
-            Logger.Log("StartLow........................");
-            if (butterworthFilterCoordinates.LowPassCoordinates.Count > 4) Logger.Log(butterworthFilterCoordinates.LowPassCoordinates.Values.ElementAt(butterworthFilterCoordinates.LowPassCoordinates.Count - 4).ToString());
-            if (butterworthFilterCoordinates.LowPassCoordinates.Count > 3) Logger.Log(butterworthFilterCoordinates.LowPassCoordinates.ElementAt(butterworthFilterCoordinates.LowPassCoordinates.Count - 3).ToString());
-            if (butterworthFilterCoordinates.LowPassCoordinates.Count > 2) Logger.Log(butterworthFilterCoordinates.LowPassCoordinates.ElementAt(butterworthFilterCoordinates.LowPassCoordinates.Count - 2).ToString());
-            if (butterworthFilterCoordinates.LowPassCoordinates.Count > 1) Logger.Log(butterworthFilterCoordinates.LowPassCoordinates.ElementAt(butterworthFilterCoordinates.LowPassCoordinates.Count - 1).ToString());
-            Logger.Log("EndLow..........................");
-            */
-
+            
             return butterworthStatistics;
         }
 
-        private ArousalStatistics GetInflectionPoints(Dictionary<double, double> coordinates, int sampleRate, double timeWindow, TimeWindowMeasure timeScale)
+        /// <summary>
+        /// Start of the calibration period.
+        /// </summary>
+        /// 
+        /// <returns>
+        /// Message to the socket client for starting of the calibration period.
+        /// </returns>
+        public string StartOfCalibrationPeriod()
         {
-            List<InflectionPoint> chartPointsCoordinates = TransformToCoordinatePoints(coordinates);
-            InflectionLine inflLineHandler = new InflectionLine();
-            List<InflectionPoint> inflectionPoints = inflLineHandler.GetInflectionPoints(chartPointsCoordinates);
+            calibrationTimer.Start();
+            calibrationTimer.Enabled = true;
 
-            return GetArousalStatistics(coordinates, timeWindow, timeScale, sampleRate);
-
+            return "The calibration process was started.";
         }
 
-        private ArousalStatistics GetInflectionPoints(Dictionary<double, double> coordinates)
+        /// <summary>
+        /// Call the method GetArousalStatistics().
+        /// </summary>
+        private void CalibrationTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            /*
-            Logger.Log("Start........................");
-            Logger.Log(coordinates.Values.ElementAt(coordinates.Count - 4).ToString());
-            Logger.Log(coordinates.Values.ElementAt(coordinates.Count - 3).ToString());
-            Logger.Log(coordinates.Values.ElementAt(coordinates.Count - 2).ToString());
-            Logger.Log(coordinates.Values.ElementAt(coordinates.Count - 1).ToString());
-            Logger.Log("End..........................");
-            */
-
-            ISignalDeviceController signalController = new GSRHRDevice();
-            int sampleRate = signalController.GetSignalSampleRate();
-            return GetInflectionPoints(coordinates, sampleRate, defaultTimeWindow, TimeWindowMeasure.Seconds);
-
+            GetArousalStatistics();
         }
 
-        private static List<InflectionPoint> TransformToCoordinatePoints(Dictionary<double, double> coordinates)
-        {
-            List<InflectionPoint> result = new List<InflectionPoint>();
-            int i = 0;
-            foreach(KeyValuePair<double, double> coordinate in coordinates)
-            {
-                result.Add(new InflectionPoint(coordinate.Key, coordinate.Value, i));
-                i++;
-            }
-
-            return result;
-        }
-
-        public ButterworthFilterCoordinates GetButterworthHighLowPassCoordinates(int sampleRate, Dictionary<double, double> medianCoordinatesValues)
-        {
-            FilterButterworth highPassFilter = new FilterButterworth(BUTTERWORTH_TONIC_PHASIC_FREQUENCY, sampleRate, ButterworthPassType.Highpass);
-            FilterButterworth lowPassFilter = new FilterButterworth(BUTTERWORTH_TONIC_PHASIC_FREQUENCY, sampleRate, ButterworthPassType.Lowpass);
-
-            Dictionary<double, double> lowPassFilterCoordinates = new Dictionary<double, double>();
-            Dictionary<double, double> highPassFilterCoordinates = new Dictionary<double, double>();
-
-            foreach (KeyValuePair<double, double> medianCoordinate in medianCoordinatesValues)
-            {
-                double medianValue = medianCoordinate.Value;
-                double highPassValue = highPassFilter.GetFilterValue(medianValue);
-                double lowPassValue = lowPassFilter.GetFilterValue(medianValue);
-
-                lowPassFilterCoordinates.Add(medianCoordinate.Key, lowPassValue);
-                highPassFilterCoordinates.Add(medianCoordinate.Key, highPassValue);
-            }
-
-            ButterworthFilterCoordinates result = new ButterworthFilterCoordinates();
-            result.LowPassCoordinates = lowPassFilterCoordinates;
-            result.HighPassCoordinates = highPassFilterCoordinates;
-
-            return result;
-        }
-
+        /// <summary>
+        /// End of the calibration period.
+        /// </summary>
+        /// 
+        /// <returns>
+        /// Message to the socket client for ending of the calibration period.
+        /// </returns>
         public string EndOfCalibrationPeriod()
         {
-            ArousalStatistics statistics = GetArousalStatistics();
-            Logger.Log("\n\n\n\n\n\n\n");
-            Logger.Log("Received message for end of calibration");
-            Logger.Log("MinAverageArousalArea: " + settings.AppSettings.Settings["MinAverageArousalArea"].Value);
-            Logger.Log("SCRArousalArea: " + statistics.SCRArousalArea);
-            double calibrationRatioSCR = Math.Round(Math.Abs(statistics.SCRArousalArea / Convert.ToDouble(
-                settings.AppSettings.Settings["MinAverageArousalArea"].Value)), 4) ;
-            double deltaSCL = Math.Round(statistics.TonicStatistics.MeanAmp - Convert.ToDouble(
-                settings.AppSettings.Settings["MinAverageTonicAmplitude"].Value), 4);
-            settings.AppSettings.Settings["CalibrationMinArousalArea"].Value = RoundString((Convert.ToDouble(
-                settings.AppSettings.Settings["MinAverageArousalArea"].Value) * calibrationRatioSCR).ToString());
-            settings.AppSettings.Settings["CalibrationMinTonicAmplitude"].Value = RoundString(statistics.TonicStatistics.MeanAmp.ToString());
-            settings.AppSettings.Settings["CalibrationMaxArousalArea"].Value = RoundString((Convert.ToDouble(
-                settings.AppSettings.Settings["MaxAverageArousalArea"].Value) * calibrationRatioSCR).ToString());
-            settings.AppSettings.Settings["CalibrationMaxTonicAmplitude"].Value = RoundString((Convert.ToDouble(
-                settings.AppSettings.Settings["MaxAverageTonicAmplitude"].Value) + deltaSCL).ToString());
+            calibrationTimer.Stop();
+            calibrationTimer.Enabled = false;
 
-            settings.Save(ConfigurationSaveMode.Minimal);
-            ConfigurationManager.RefreshSection("appSettings");
-
-            Logger.Log("Calibration data: " + GetJSONArousalStatistics(statistics));
-            Logger.Log("calibrationRatioSCR: " + calibrationRatioSCR);
-            Logger.Log("calibrationRatioSCL: " + deltaSCL);
-            Logger.Log("calibrationMinArousalArea: " + settings.AppSettings.Settings["CalibrationMinArousalArea"].Value);
-            Logger.Log("calibrationMinTonicAmplitude: " + settings.AppSettings.Settings["CalibrationMinTonicAmplitude"].Value);
-            Logger.Log("calibrationMaxArousalArea: " + settings.AppSettings.Settings["CalibrationMaxArousalArea"].Value);
-            Logger.Log("calibrationMaxTonicAmplitude: " + settings.AppSettings.Settings["CalibrationMaxTonicAmplitude"].Value);
-            Logger.Log("The calibration process was executed.");
+            SetCalibrationMinMaxStatistics();
+            
+            logger.Log(Severity.Information, "The calibration process was executed. The result is: \nminArousalArea: " + minArousalArea +
+                                                                            "\nmaxArousalArea: " + maxArousalArea +
+                                                                            "\nminTonicAmplitude: " + minTonicAmplitude +
+                                                                            "\nmaxTonicAmplitude: " + maxTonicAmplitude +
+                                                                            "\nminMovingAverage: " + minMovingAverage +
+                                                                            "\nmaxMovingAverage: " + maxMovingAverage);
 
             return "The calibration process was executed.";
         }
 
+        /// <summary>
+        /// Set min/max {arousal area, tonic amplitude and general arousal} after the calibration period.
+        /// </summary>
+        /// 
+        private void SetCalibrationMinMaxStatistics()
+        {
+            double minGSRDeviceSignalValue = settings.MinGSRDeviceSignalValue;
+            double maxGSRDeviceSignalValue = settings.MaxGSRDeviceSignalValue;
+
+            minArousalArea = 0.75 * minArousalArea;
+            minTonicAmplitude = 0.75 * minTonicAmplitude;
+            minMovingAverage = 0.75 * minMovingAverage;
+
+            minMovingAverage = (minMovingAverage.CompareTo(minGSRDeviceSignalValue) > 0) ? minMovingAverage : minGSRDeviceSignalValue;
+
+            maxArousalArea = 1.25 * maxArousalArea;
+            maxTonicAmplitude = 1.25 * maxTonicAmplitude;
+            maxMovingAverage = 1.25 * maxMovingAverage;
+
+            maxMovingAverage = (maxMovingAverage.CompareTo(maxGSRDeviceSignalValue) < 0) ? maxMovingAverage : maxGSRDeviceSignalValue;
+        }
+
+        /// <summary>
+        /// End of the measurement.
+        /// </summary>
+        /// 
+        /// <returns>
+        /// Message to the socket client for ending of the measurement.
+        /// </returns>
         public string EndOfMeasurement()
         {
-            /*
-            Logger.Log("Received message for end of measurement");
-            Logger.Log("Old settings.NumberParticipants: " + GetAppValue("NumberParticipants"));
-            Logger.Log("Old settings.MinAverageArousalArea: " + GetAppValue("MinAverageArousalArea"));
-            Logger.Log("Old settings.MaxAverageArousalArea: " + GetAppValue("MaxAverageArousalArea"));
-            Logger.Log("Old settings.MinAverageTonicAmplitude: " + GetAppValue("MinAverageTonicAmplitude"));
-            Logger.Log("Old settings.MaxAverageTonicAmplitude: " + GetAppValue("MaxAverageTonicAmplitude"));
+            logger.Log(Severity.Information, "The measurement process was ended. The result is: \nminArousalArea: " + minArousalArea +
+                                                                         "\nmaxArousalArea: " + maxArousalArea +
+                                                                         "\nminTonicAmplitude: " + minTonicAmplitude +
+                                                                         "\nmaxTonicAmplitude: " + maxTonicAmplitude +
+                                                                         "\nminMovingAverage: " + minMovingAverage +
+                                                                         "\nmaxMovingAverage: " + maxMovingAverage);
 
-            Logger.Log("NumberParticipants: " + GetAppValue("NumberParticipants"));
-            Logger.Log("minArousalArea: " + GetAppValue("MinArousalArea"));
-            Logger.Log("maxArousalArea: " + GetAppValue("MaxArousalArea"));
-            Logger.Log("minTonicAmplitude: " + GetAppValue("MinTonicAmplitude"));
-            Logger.Log("maxTonicAmplitude: " + GetAppValue("MaxTonicAmplitude"));
-            */
-
-            int oldNumberParticipants = Convert.ToInt32(GetAppValue("NumberParticipants"));
-            int currentNumberParticipants = oldNumberParticipants + 1;
-            if (GetAppValue("MinAbsoluteArousalArea").CompareTo(GetAppValue("MinArousalArea")) > 0)
-            {
-                settings.AppSettings.Settings["MinAbsoluteArousalArea"].Value = RoundString(settings.AppSettings.Settings["MinArousalArea"].Value);
-            }
-            if (GetAppValue("MaxAbsoluteArousalArea").CompareTo(GetAppValue("MaxArousalArea")) < 0)
-            {
-                settings.AppSettings.Settings["MaxAbsoluteArousalArea"].Value = Math.Round(GetAppValue("MaxArousalArea"), 4).ToString();
-            }
-            settings.AppSettings.Settings["MinAverageArousalArea"].Value = RoundString(( (
-                GetAppValue("MinAverageArousalArea") * oldNumberParticipants + 
-                GetAppValue("MinArousalArea") ) / currentNumberParticipants ).ToString());
-            settings.AppSettings.Settings["MaxAverageArousalArea"].Value = RoundString(
-               ( ( GetAppValue("MaxAverageArousalArea") * oldNumberParticipants + 
-                GetAppValue("MaxArousalArea") ) / currentNumberParticipants).ToString());
-
-            if (GetAppValue("MinTonicAmplitude").CompareTo(GetAppValue("MinAbsoluteTonicAmplitude")) < 0)
-            {
-                settings.AppSettings.Settings["MinAbsoluteTonicAmplitude"].Value = Math.Round(GetAppValue("MinTonicAmplitude"), 4).ToString();
-            }
-            if (GetAppValue("MaxTonicAmplitude").CompareTo(GetAppValue("MaxAbsoluteTonicAmplitude")) > 0)
-            {
-                settings.AppSettings.Settings["MaxAbsoluteTonicAmplitude"].Value = Math.Round(GetAppValue("MaxTonicAmplitude"), 4).ToString();
-            }
-            settings.AppSettings.Settings["MinAverageTonicAmplitude"].Value = 
-                ( (GetAppValue("MinAverageTonicAmplitude") * oldNumberParticipants + 
-                GetAppValue("MinTonicAmplitude")) / currentNumberParticipants).ToString();
-            settings.AppSettings.Settings["MaxAverageTonicAmplitude"].Value = RoundString( ( (
-                GetAppValue("MaxAverageTonicAmplitude") * oldNumberParticipants +
-                GetAppValue("MaxTonicAmplitude")) / currentNumberParticipants).ToString());
-
-            settings.AppSettings.Settings["NumberParticipants"].Value = currentNumberParticipants.ToString();
-
-            //settings.Save(ConfigurationSaveMode.Minimal);
-            //ConfigurationManager.RefreshSection("appSettings");
-
-            //re-initialize min/max for arousal area and tonic amplitude
-            settings.AppSettings.Settings["MaxArousalArea"].Value = "-1";
-            settings.AppSettings.Settings["MinArousalArea"].Value = "-1";
-            settings.AppSettings.Settings["MinTonicAmplitude"].Value = "100";
-            settings.AppSettings.Settings["MaxTonicAmplitude"].Value = "-100";
-
-            settings.Save(ConfigurationSaveMode.Minimal);
-            ConfigurationManager.RefreshSection("appSettings");
-            /*
-            Logger.Log("New settings.NumberParticipants: " + GetAppValue("NumberParticipants"));
-            Logger.Log("New settings.MinAverageArousalArea: " + GetAppValue("MinAverageArousalArea"));
-            Logger.Log("New settings.MaxAverageArousalArea: " + GetAppValue("MaxAverageArousalArea"));
-            Logger.Log("New settings.MinAverageTonicAmplitude: " + GetAppValue("MinAverageTonicAmplitude"));
-            Logger.Log("New settings.MaxAverageTonicAmplitude: " + GetAppValue("MaxAverageTonicAmplitude"));
-            Logger.Log("End...");
-            */
+            InitializeMinMaxStatistics();
 
             return "The measurement process was ended.";
         }
 
+        /// <summary>
+        /// Convert a string to double with precision to the 4-th digit.
+        /// </summary>
+        /// 
+        /// <param name="value">String value.</param>
+        /// <param name="medianCoordinatesValues">list of signal data.</param>
+        /// 
+        /// <returns>
+        /// Double value of the string.
+        /// </returns>
         private string RoundString(string value)
         {
-            return Math.Round(Convert.ToDouble(value), 4).ToString();
+            return Math.Round(Convert.ToDouble(value, CultureInfo.InvariantCulture), 4).ToString();
         }
 
-        private double GetAppValue(string value)
+        /// <summary>
+        /// Set initial value of min/max {arousal area, tonic amplitude and general arousal}.
+        /// </summary>
+        /// 
+        public void InitializeMinMaxStatistics()
         {
-            return Convert.ToDouble(settings.AppSettings.Settings[value].Value);
-        }
-
-        public void InitializeMinMaxValues()
-        {
-
-            settings.AppSettings.Settings["MinAbsoluteArousalArea"].Value = "800";
-            settings.AppSettings.Settings["MaxAbsoluteArousalArea"].Value = "4000";
-            settings.AppSettings.Settings["MinAverageArousalArea"].Value = "700";
-            settings.AppSettings.Settings["MaxAverageArousalArea"].Value = "4000";
-            settings.AppSettings.Settings["MinAbsoluteTonicAmplitude"].Value = "-0.05";
-            settings.AppSettings.Settings["MaxAbsoluteTonicAmplitude"].Value = "3.12";
-            settings.AppSettings.Settings["MinAverageTonicAmplitude"].Value = "-0.05";
-            settings.AppSettings.Settings["MaxAverageTonicAmplitude"].Value = "3.12";
-            settings.AppSettings.Settings["NumberParticipants"].Value = "1";
-
-            settings.Save(ConfigurationSaveMode.Minimal);
-            ConfigurationManager.RefreshSection("appSettings");
+            minArousalArea = Double.NaN;
+            maxArousalArea = Double.NaN;
+            minTonicAmplitude = Double.NaN;
+            maxTonicAmplitude = Double.NaN;
+            minMovingAverage = Double.NaN;
+            maxMovingAverage = Double.NaN;
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿using System.Windows.Forms;
+﻿using System;
+using System.Windows.Forms;
+using System.Windows.Forms.DataVisualization.Charting;
 
 namespace Assets.Rage.GSRAsset.DisplayGSRSignal
 {
@@ -35,33 +37,35 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
             System.Windows.Forms.DataVisualization.Charting.Legend legend1 = new System.Windows.Forms.DataVisualization.Charting.Legend();
             System.Windows.Forms.DataVisualization.Charting.Series series1 = new System.Windows.Forms.DataVisualization.Charting.Series();
             System.Windows.Forms.DataVisualization.Charting.Series series2 = new System.Windows.Forms.DataVisualization.Charting.Series();
-            System.Windows.Forms.DataVisualization.Charting.Series series3 = new System.Windows.Forms.DataVisualization.Charting.Series();
             System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea2 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
             System.Windows.Forms.DataVisualization.Charting.Legend legend2 = new System.Windows.Forms.DataVisualization.Charting.Legend();
+            System.Windows.Forms.DataVisualization.Charting.Series series3 = new System.Windows.Forms.DataVisualization.Charting.Series();
             System.Windows.Forms.DataVisualization.Charting.Series series4 = new System.Windows.Forms.DataVisualization.Charting.Series();
-            System.Windows.Forms.DataVisualization.Charting.Series series5 = new System.Windows.Forms.DataVisualization.Charting.Series();
             System.Windows.Forms.DataVisualization.Charting.Title title1 = new System.Windows.Forms.DataVisualization.Charting.Title();
             this.refreshButton = new System.Windows.Forms.Button();
             this.gsrChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
             this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.stopButton = new System.Windows.Forms.Button();
-            this.MinYLbl = new System.Windows.Forms.Label();
-            this.MinYTxtBox = new System.Windows.Forms.TextBox();
-            this.MinYBtn = new System.Windows.Forms.Button();
-            this.MaxYLbl = new System.Windows.Forms.Label();
-            this.MaxYTxtBox = new System.Windows.Forms.TextBox();
-            this.MaxYBtn = new System.Windows.Forms.Button();
             this.checkDenoisedFilter = new System.Windows.Forms.CheckBox();
             this.butterworthChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
-            this.MinYFltBtn = new System.Windows.Forms.Button();
-            this.MinYFltTxtBox = new System.Windows.Forms.TextBox();
-            this.MinYFltLbl = new System.Windows.Forms.Label();
-            this.MaxYFltBtn = new System.Windows.Forms.Button();
-            this.MaxYFltTxtBox = new System.Windows.Forms.TextBox();
-            this.MaxYFltLbl = new System.Windows.Forms.Label();
             this.ArousalInfo = new System.Windows.Forms.Label();
             this.ArousalInfoButterworth = new System.Windows.Forms.Label();
             this.btnStartSocket = new System.Windows.Forms.Button();
+            this.btnStopSocket = new System.Windows.Forms.Button();
+            this.lblSocketAddress = new System.Windows.Forms.Label();
+            this.lblSocketAddressValue = new System.Windows.Forms.Label();
+            this.lblTimeWindow = new System.Windows.Forms.Label();
+            this.lblTimeWindowValue = new System.Windows.Forms.Label();
+            this.lblSampleRate = new System.Windows.Forms.Label();
+            this.lblSampleRateValue = new System.Windows.Forms.Label();
+            this.lblLowPassValue = new System.Windows.Forms.Label();
+            this.lblHighPassValue = new System.Windows.Forms.Label();
+            this.toolTip1 = new System.Windows.Forms.ToolTip(this.components);
+            this.ttpMouseInOut = new System.Windows.Forms.ToolTip(this.components);
+            this.lblImgZoomInOut = new System.Windows.Forms.Label();
+            this.gsrImgZoomInOut = new System.Windows.Forms.Button();
+            this.btnSocketLight = new System.Windows.Forms.Button();
+            this.lblErrors = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.gsrChart)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.butterworthChart)).BeginInit();
             this.SuspendLayout();
@@ -84,35 +88,28 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
             this.gsrChart.ChartAreas.Add(chartArea1);
             legend1.Name = "Legend1";
             this.gsrChart.Legends.Add(legend1);
-            this.gsrChart.Location = new System.Drawing.Point(73, 31);
+            this.gsrChart.Location = new System.Drawing.Point(73, 32);
             this.gsrChart.Name = "gsrChart";
             series1.BorderWidth = 2;
             series1.ChartArea = "ChartArea1";
             series1.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Spline;
             series1.Legend = "Legend1";
-            series1.Name = "GSR 1";
+            series1.Name = "Raw signal";
             series1.XValueType = System.Windows.Forms.DataVisualization.Charting.ChartValueType.Double;
             series1.YValuesPerPoint = 20;
             series1.YValueType = System.Windows.Forms.DataVisualization.Charting.ChartValueType.Double;
             series2.BorderWidth = 2;
             series2.ChartArea = "ChartArea1";
-            series2.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Spline;
-            series2.Color = System.Drawing.Color.Fuchsia;
-            series2.Enabled = false;
+            series2.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Line;
+            series2.Color = System.Drawing.Color.MediumSpringGreen;
             series2.Legend = "Legend1";
-            series2.Name = "Moving Average";
-            series3.BorderWidth = 2;
-            series3.ChartArea = "ChartArea1";
-            series3.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Line;
-            series3.Color = System.Drawing.Color.MediumSpringGreen;
-            series3.Legend = "Legend1";
-            series3.Name = "De-noised filter";
+            series2.Name = "Denoised signal";
             this.gsrChart.Series.Add(series1);
             this.gsrChart.Series.Add(series2);
-            this.gsrChart.Series.Add(series3);
             this.gsrChart.Size = new System.Drawing.Size(1511, 502);
             this.gsrChart.TabIndex = 22;
             this.gsrChart.Text = "gsrChart";
+            this.gsrChart.AxisViewChanged += new System.EventHandler<System.Windows.Forms.DataVisualization.Charting.ViewEventArgs>(this.activeChart_ScrollerMove);
             this.gsrChart.MouseClick += new System.Windows.Forms.MouseEventHandler(this.gsrChart_MouseClick);
             this.gsrChart.MouseMove += new System.Windows.Forms.MouseEventHandler(this.gsrChart_MouseMove);
             // 
@@ -130,62 +127,6 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
             this.stopButton.UseVisualStyleBackColor = true;
             this.stopButton.Click += new System.EventHandler(this.stop_Click);
             // 
-            // MinYLbl
-            // 
-            this.MinYLbl.AutoSize = true;
-            this.MinYLbl.BackColor = System.Drawing.SystemColors.Window;
-            this.MinYLbl.Location = new System.Drawing.Point(58, 422);
-            this.MinYLbl.Name = "MinYLbl";
-            this.MinYLbl.Size = new System.Drawing.Size(47, 17);
-            this.MinYLbl.TabIndex = 14;
-            this.MinYLbl.Text = "Min Y:";
-            // 
-            // MinYTxtBox
-            // 
-            this.MinYTxtBox.Location = new System.Drawing.Point(58, 442);
-            this.MinYTxtBox.Name = "MinYTxtBox";
-            this.MinYTxtBox.Size = new System.Drawing.Size(47, 22);
-            this.MinYTxtBox.TabIndex = 15;
-            // 
-            // MinYBtn
-            // 
-            this.MinYBtn.BackgroundImage = global::DisplayGSRSignal.Properties.Resources.go_512;
-            this.MinYBtn.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
-            this.MinYBtn.Location = new System.Drawing.Point(111, 442);
-            this.MinYBtn.Name = "MinYBtn";
-            this.MinYBtn.Size = new System.Drawing.Size(25, 27);
-            this.MinYBtn.TabIndex = 16;
-            this.MinYBtn.UseVisualStyleBackColor = true;
-            this.MinYBtn.Click += new System.EventHandler(this.MinYBtn_Click);
-            // 
-            // MaxYLbl
-            // 
-            this.MaxYLbl.AutoSize = true;
-            this.MaxYLbl.BackColor = System.Drawing.SystemColors.Window;
-            this.MaxYLbl.Location = new System.Drawing.Point(58, 31);
-            this.MaxYLbl.Name = "MaxYLbl";
-            this.MaxYLbl.Size = new System.Drawing.Size(50, 17);
-            this.MaxYLbl.TabIndex = 18;
-            this.MaxYLbl.Text = "Max Y:";
-            // 
-            // MaxYTxtBox
-            // 
-            this.MaxYTxtBox.Location = new System.Drawing.Point(58, 55);
-            this.MaxYTxtBox.Name = "MaxYTxtBox";
-            this.MaxYTxtBox.Size = new System.Drawing.Size(47, 22);
-            this.MaxYTxtBox.TabIndex = 19;
-            // 
-            // MaxYBtn
-            // 
-            this.MaxYBtn.BackgroundImage = global::DisplayGSRSignal.Properties.Resources.go_512;
-            this.MaxYBtn.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
-            this.MaxYBtn.Location = new System.Drawing.Point(111, 55);
-            this.MaxYBtn.Name = "MaxYBtn";
-            this.MaxYBtn.Size = new System.Drawing.Size(25, 26);
-            this.MaxYBtn.TabIndex = 20;
-            this.MaxYBtn.UseVisualStyleBackColor = true;
-            this.MaxYBtn.Click += new System.EventHandler(this.MaxYBtn_Click);
-            // 
             // checkDenoisedFilter
             // 
             this.checkDenoisedFilter.AutoSize = true;
@@ -194,9 +135,9 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
             this.checkDenoisedFilter.CheckState = System.Windows.Forms.CheckState.Checked;
             this.checkDenoisedFilter.Location = new System.Drawing.Point(1377, 133);
             this.checkDenoisedFilter.Name = "checkDenoisedFilter";
-            this.checkDenoisedFilter.Size = new System.Drawing.Size(178, 21);
+            this.checkDenoisedFilter.Size = new System.Drawing.Size(173, 21);
             this.checkDenoisedFilter.TabIndex = 21;
-            this.checkDenoisedFilter.Text = "Activate de-noised filter";
+            this.checkDenoisedFilter.Text = "Activate denoised filter";
             this.checkDenoisedFilter.UseVisualStyleBackColor = false;
             this.checkDenoisedFilter.CheckedChanged += new System.EventHandler(this.CheckDenoisedFilter_CheckedChanged);
             // 
@@ -208,83 +149,28 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
             this.butterworthChart.Legends.Add(legend2);
             this.butterworthChart.Location = new System.Drawing.Point(73, 552);
             this.butterworthChart.Name = "butterworthChart";
+            series3.BorderWidth = 2;
+            series3.ChartArea = "ChartArea1";
+            series3.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Spline;
+            series3.Color = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(192)))));
+            series3.Legend = "Legend1";
+            series3.Name = "Tonic line";
             series4.BorderWidth = 2;
             series4.ChartArea = "ChartArea1";
-            series4.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Spline;
-            series4.Color = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(192)))));
+            series4.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Line;
+            series4.Color = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(192)))), ((int)(((byte)(0)))));
             series4.Legend = "Legend1";
-            series4.Name = "Tonic line";
-            series5.BorderWidth = 2;
-            series5.ChartArea = "ChartArea1";
-            series5.ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.Line;
-            series5.Color = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(192)))), ((int)(((byte)(0)))));
-            series5.Legend = "Legend1";
-            series5.Name = "Phasic line";
+            series4.Name = "Phasic line";
+            this.butterworthChart.Series.Add(series3);
             this.butterworthChart.Series.Add(series4);
-            this.butterworthChart.Series.Add(series5);
             this.butterworthChart.Size = new System.Drawing.Size(1511, 502);
             this.butterworthChart.TabIndex = 22;
             this.butterworthChart.Text = "butterworthfilter";
             title1.ForeColor = System.Drawing.Color.DodgerBlue;
             title1.Name = "Butterworth filter";
             this.butterworthChart.Titles.Add(title1);
+            this.butterworthChart.AxisViewChanged += new System.EventHandler<System.Windows.Forms.DataVisualization.Charting.ViewEventArgs>(this.activeChart_ScrollerMove);
             this.butterworthChart.MouseMove += new System.Windows.Forms.MouseEventHandler(this.butterworthChart_MouseMove);
-            // 
-            // MinYFltBtn
-            // 
-            this.MinYFltBtn.BackgroundImage = global::DisplayGSRSignal.Properties.Resources.go_512;
-            this.MinYFltBtn.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
-            this.MinYFltBtn.Location = new System.Drawing.Point(111, 745);
-            this.MinYFltBtn.Name = "MinYFltBtn";
-            this.MinYFltBtn.Size = new System.Drawing.Size(25, 27);
-            this.MinYFltBtn.TabIndex = 24;
-            this.MinYFltBtn.UseVisualStyleBackColor = true;
-            this.MinYFltBtn.Click += new System.EventHandler(this.MinYFltBtn_Click);
-            // 
-            // MinYFltTxtBox
-            // 
-            this.MinYFltTxtBox.Location = new System.Drawing.Point(58, 745);
-            this.MinYFltTxtBox.Name = "MinYFltTxtBox";
-            this.MinYFltTxtBox.Size = new System.Drawing.Size(47, 22);
-            this.MinYFltTxtBox.TabIndex = 23;
-            // 
-            // MinYFltLbl
-            // 
-            this.MinYFltLbl.AutoSize = true;
-            this.MinYFltLbl.BackColor = System.Drawing.SystemColors.Window;
-            this.MinYFltLbl.Location = new System.Drawing.Point(58, 725);
-            this.MinYFltLbl.Name = "MinYFltLbl";
-            this.MinYFltLbl.Size = new System.Drawing.Size(47, 17);
-            this.MinYFltLbl.TabIndex = 25;
-            this.MinYFltLbl.Text = "Min Y:";
-            // 
-            // MaxYFltBtn
-            // 
-            this.MaxYFltBtn.BackgroundImage = global::DisplayGSRSignal.Properties.Resources.go_512;
-            this.MaxYFltBtn.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
-            this.MaxYFltBtn.Location = new System.Drawing.Point(111, 570);
-            this.MaxYFltBtn.Name = "MaxYFltBtn";
-            this.MaxYFltBtn.Size = new System.Drawing.Size(25, 26);
-            this.MaxYFltBtn.TabIndex = 28;
-            this.MaxYFltBtn.UseVisualStyleBackColor = true;
-            this.MaxYFltBtn.Click += new System.EventHandler(this.MaxYFltBtn_Click);
-            // 
-            // MaxYFltTxtBox
-            // 
-            this.MaxYFltTxtBox.Location = new System.Drawing.Point(58, 570);
-            this.MaxYFltTxtBox.Name = "MaxYFltTxtBox";
-            this.MaxYFltTxtBox.Size = new System.Drawing.Size(47, 22);
-            this.MaxYFltTxtBox.TabIndex = 27;
-            // 
-            // MaxYFltLbl
-            // 
-            this.MaxYFltLbl.AutoSize = true;
-            this.MaxYFltLbl.BackColor = System.Drawing.SystemColors.Window;
-            this.MaxYFltLbl.Location = new System.Drawing.Point(58, 546);
-            this.MaxYFltLbl.Name = "MaxYFltLbl";
-            this.MaxYFltLbl.Size = new System.Drawing.Size(50, 17);
-            this.MaxYFltLbl.TabIndex = 26;
-            this.MaxYFltLbl.Text = "Max Y:";
             // 
             // ArousalInfo
             // 
@@ -305,37 +191,163 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
             // 
             // btnStartSocket
             // 
-            this.btnStartSocket.Location = new System.Drawing.Point(1377, 207);
+            this.btnStartSocket.Location = new System.Drawing.Point(1409, 208);
             this.btnStartSocket.Name = "btnStartSocket";
-            this.btnStartSocket.Size = new System.Drawing.Size(164, 30);
+            this.btnStartSocket.Size = new System.Drawing.Size(132, 30);
             this.btnStartSocket.TabIndex = 31;
             this.btnStartSocket.Text = "Start socket connection";
             this.btnStartSocket.UseVisualStyleBackColor = true;
             this.btnStartSocket.Click += new System.EventHandler(this.btnStartSocket_Click);
             // 
+            // btnStopSocket
+            // 
+            this.btnStopSocket.Location = new System.Drawing.Point(1409, 209);
+            this.btnStopSocket.Name = "btnStopSocket";
+            this.btnStopSocket.Size = new System.Drawing.Size(132, 30);
+            this.btnStopSocket.TabIndex = 32;
+            this.btnStopSocket.Text = "Stop socket connection";
+            this.btnStopSocket.UseVisualStyleBackColor = true;
+            this.btnStopSocket.Click += new System.EventHandler(this.btnStopSocket_Click);
+            // 
+            // lblSocketAddress
+            // 
+            this.lblSocketAddress.AutoSize = true;
+            this.lblSocketAddress.Location = new System.Drawing.Point(1377, 257);
+            this.lblSocketAddress.Name = "lblSocketAddress";
+            this.lblSocketAddress.Size = new System.Drawing.Size(110, 17);
+            this.lblSocketAddress.TabIndex = 33;
+            this.lblSocketAddress.Text = "Socket address:";
+            // 
+            // lblSocketAddressValue
+            // 
+            this.lblSocketAddressValue.AutoSize = true;
+            this.lblSocketAddressValue.Location = new System.Drawing.Point(1493, 258);
+            this.lblSocketAddressValue.Name = "lblSocketAddressValue";
+            this.lblSocketAddressValue.Size = new System.Drawing.Size(0, 17);
+            this.lblSocketAddressValue.TabIndex = 34;
+            // 
+            // lblTimeWindow
+            // 
+            this.lblTimeWindow.AutoSize = true;
+            this.lblTimeWindow.Location = new System.Drawing.Point(1377, 278);
+            this.lblTimeWindow.Name = "lblTimeWindow";
+            this.lblTimeWindow.Size = new System.Drawing.Size(92, 17);
+            this.lblTimeWindow.TabIndex = 35;
+            this.lblTimeWindow.Text = "TimeWindow:";
+            // 
+            // lblTimeWindowValue
+            // 
+            this.lblTimeWindowValue.AutoSize = true;
+            this.lblTimeWindowValue.Location = new System.Drawing.Point(1493, 278);
+            this.lblTimeWindowValue.Name = "lblTimeWindowValue";
+            this.lblTimeWindowValue.Size = new System.Drawing.Size(0, 17);
+            this.lblTimeWindowValue.TabIndex = 36;
+            // 
+            // lblSampleRate
+            // 
+            this.lblSampleRate.AutoSize = true;
+            this.lblSampleRate.Location = new System.Drawing.Point(1380, 299);
+            this.lblSampleRate.Name = "lblSampleRate";
+            this.lblSampleRate.Size = new System.Drawing.Size(88, 17);
+            this.lblSampleRate.TabIndex = 37;
+            this.lblSampleRate.Text = "Sample rate:";
+            // 
+            // lblSampleRateValue
+            // 
+            this.lblSampleRateValue.AutoSize = true;
+            this.lblSampleRateValue.Location = new System.Drawing.Point(1493, 299);
+            this.lblSampleRateValue.Name = "lblSampleRateValue";
+            this.lblSampleRateValue.Size = new System.Drawing.Size(0, 17);
+            this.lblSampleRateValue.TabIndex = 38;
+            // 
+            // lblLowPassValue
+            // 
+            this.lblLowPassValue.AutoSize = true;
+            this.lblLowPassValue.Location = new System.Drawing.Point(1528, 602);
+            this.lblLowPassValue.Name = "lblLowPassValue";
+            this.lblLowPassValue.Size = new System.Drawing.Size(0, 17);
+            this.lblLowPassValue.TabIndex = 39;
+            // 
+            // lblHighPassValue
+            // 
+            this.lblHighPassValue.AutoSize = true;
+            this.lblHighPassValue.Location = new System.Drawing.Point(1528, 618);
+            this.lblHighPassValue.Name = "lblHighPassValue";
+            this.lblHighPassValue.Size = new System.Drawing.Size(0, 17);
+            this.lblHighPassValue.TabIndex = 40;
+            // 
+            // lblImgZoomInOut
+            // 
+            this.lblImgZoomInOut.AutoSize = true;
+            this.lblImgZoomInOut.Location = new System.Drawing.Point(1436, 385);
+            this.lblImgZoomInOut.Margin = new System.Windows.Forms.Padding(0);
+            this.lblImgZoomInOut.Name = "lblImgZoomInOut";
+            this.lblImgZoomInOut.Size = new System.Drawing.Size(307, 34);
+            this.lblImgZoomInOut.TabIndex = 42;
+            this.lblImgZoomInOut.Text = "When stoped the GSR device \r\nyou can use the mouse\'s wheel for zoom in/out.";
+            // 
+            // gsrImgZoomInOut
+            // 
+            this.gsrImgZoomInOut.BackColor = System.Drawing.Color.Transparent;
+            this.gsrImgZoomInOut.FlatAppearance.BorderColor = System.Drawing.Color.White;
+            this.gsrImgZoomInOut.FlatAppearance.BorderSize = 0;
+            this.gsrImgZoomInOut.FlatAppearance.MouseDownBackColor = System.Drawing.Color.Transparent;
+            this.gsrImgZoomInOut.FlatAppearance.MouseOverBackColor = System.Drawing.Color.Transparent;
+            this.gsrImgZoomInOut.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.gsrImgZoomInOut.Image = global::DisplayGSRSignal.Properties.Resources.mouseScrollUpDown_small_2;
+            this.gsrImgZoomInOut.Location = new System.Drawing.Point(1380, 371);
+            this.gsrImgZoomInOut.Name = "gsrImgZoomInOut";
+            this.gsrImgZoomInOut.Size = new System.Drawing.Size(53, 83);
+            this.gsrImgZoomInOut.TabIndex = 41;
+            this.gsrImgZoomInOut.UseVisualStyleBackColor = false;
+            this.gsrImgZoomInOut.Click += new System.EventHandler(this.gsrImgZoomInOut_Click);
+            this.gsrImgZoomInOut.MouseHover += new System.EventHandler(this.imgZoomInOut_MouseOver);
+            // 
+            // btnSocketLight
+            // 
+            this.btnSocketLight.BackColor = System.Drawing.Color.Green;
+            this.btnSocketLight.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnSocketLight.Location = new System.Drawing.Point(1377, 210);
+            this.btnSocketLight.Name = "btnSocketLight";
+            this.btnSocketLight.Size = new System.Drawing.Size(26, 27);
+            this.btnSocketLight.TabIndex = 43;
+            this.btnSocketLight.UseVisualStyleBackColor = false;
+            // 
+            // lblErrors
+            // 
+            this.lblErrors.AutoSize = true;
+            this.lblErrors.ForeColor = System.Drawing.Color.Red;
+            this.lblErrors.Location = new System.Drawing.Point(144, 9);
+            this.lblErrors.Name = "lblErrors";
+            this.lblErrors.Size = new System.Drawing.Size(0, 17);
+            this.lblErrors.TabIndex = 44;
+            // 
             // SignalsVisualization
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoScroll = true;
+            this.AutoSize = true;
             this.BackColor = System.Drawing.SystemColors.ButtonHighlight;
-            this.ClientSize = new System.Drawing.Size(1554, 898);
+            this.ClientSize = new System.Drawing.Size(1906, 898);
+            this.Controls.Add(this.gsrImgZoomInOut);
+            this.Controls.Add(this.lblErrors);
+            this.Controls.Add(this.btnSocketLight);
+            this.Controls.Add(this.lblImgZoomInOut);
+            this.Controls.Add(this.lblHighPassValue);
+            this.Controls.Add(this.lblLowPassValue);
+            this.Controls.Add(this.lblSampleRateValue);
+            this.Controls.Add(this.lblSampleRate);
+            this.Controls.Add(this.lblTimeWindowValue);
+            this.Controls.Add(this.lblTimeWindow);
+            this.Controls.Add(this.lblSocketAddressValue);
+            this.Controls.Add(this.lblSocketAddress);
+            this.Controls.Add(this.btnStopSocket);
             this.Controls.Add(this.btnStartSocket);
             this.Controls.Add(this.ArousalInfoButterworth);
             this.Controls.Add(this.ArousalInfo);
-            this.Controls.Add(this.MaxYFltBtn);
-            this.Controls.Add(this.MaxYFltTxtBox);
-            this.Controls.Add(this.MaxYFltLbl);
-            this.Controls.Add(this.MinYFltLbl);
-            this.Controls.Add(this.MinYFltBtn);
-            this.Controls.Add(this.MinYFltTxtBox);
             this.Controls.Add(this.butterworthChart);
             this.Controls.Add(this.checkDenoisedFilter);
-            this.Controls.Add(this.MaxYBtn);
-            this.Controls.Add(this.MaxYTxtBox);
-            this.Controls.Add(this.MaxYLbl);
-            this.Controls.Add(this.MinYBtn);
-            this.Controls.Add(this.MinYTxtBox);
-            this.Controls.Add(this.MinYLbl);
             this.Controls.Add(this.refreshButton);
             this.Controls.Add(this.stopButton);
             this.Controls.Add(this.gsrChart);
@@ -355,23 +367,26 @@ namespace Assets.Rage.GSRAsset.DisplayGSRSignal
         private System.Windows.Forms.DataVisualization.Charting.Chart gsrChart;
         private System.Windows.Forms.Timer timer1;
         private System.Windows.Forms.Button stopButton;
-        private System.Windows.Forms.Label MinYLbl;
-        private System.Windows.Forms.TextBox MinYTxtBox;
-        private System.Windows.Forms.Button MinYBtn;
-        private System.Windows.Forms.Label MaxYLbl;
-        private System.Windows.Forms.TextBox MaxYTxtBox;
-        private System.Windows.Forms.Button MaxYBtn;
         private CheckBox checkDenoisedFilter;
         private System.Windows.Forms.DataVisualization.Charting.Chart butterworthChart;
-        private Button MinYFltBtn;
-        private TextBox MinYFltTxtBox;
-        private Label MinYFltLbl;
-        private Button MaxYFltBtn;
-        private TextBox MaxYFltTxtBox;
-        private Label MaxYFltLbl;
         private Label ArousalInfo;
         private Label ArousalInfoButterworth;
         private Button btnStartSocket;
+        private Button btnStopSocket;
+        private Label lblSocketAddress;
+        private Label lblSocketAddressValue;
+        private Label lblTimeWindow;
+        private Label lblTimeWindowValue;
+        private Label lblSampleRate;
+        private Label lblSampleRateValue;
+        private Label lblLowPassValue;
+        private Label lblHighPassValue;
+        private Button gsrImgZoomInOut;
+        private ToolTip toolTip1;
+        private ToolTip ttpMouseInOut;
+        private Label lblImgZoomInOut;
+        private Button btnSocketLight;
+        private Label lblErrors;
     }
 }
 

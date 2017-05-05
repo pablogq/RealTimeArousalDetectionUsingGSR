@@ -7,6 +7,7 @@
   <revision></revision>
   <maturity>beta</maturity>
   <dependencies>
+    <depends minVersion="1.2.3">Utils</depends>
     <depends minVersion="1.2.3">RealTimeArousalDetection</depends>
   </dependencies>
 </version>

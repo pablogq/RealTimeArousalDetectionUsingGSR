@@ -17,7 +17,7 @@
  */
 
 
-namespace Assets.Rage.GSRAsset.SignalProcessor
+namespace Assets.Rage.GSRAsset.Utils
 {
     public class InflectionPoint
     {
@@ -31,6 +31,14 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
             this.x = x1;
             this.y = y1;
             this.index = indexOrigin;
+        }
+
+        public InflectionPoint(SignalDataByTime signalValue, int indexOrigin, ExtremaType extremum)
+        {
+            this.x = signalValue.Time;
+            this.y = signalValue.SignalValue;
+            this.index = indexOrigin;
+            this.extremumType = extremum;
         }
 
 

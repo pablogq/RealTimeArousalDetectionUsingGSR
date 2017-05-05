@@ -54,9 +54,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\GSRProcessorDeviceIntegrator\GSRProcessorDeviceIntegrator.csproj">
+    <ProjectReference Include="..\RealTimeArousalDetectionUsingGSRAsset\RealTimeArousalDetectionUsingGSRAsset.csproj">
       <Project>{50b7f5ae-9889-44f1-921a-3dc57ecabd8d}</Project>
-      <Name>GSRProcessorDeviceIntegrator</Name>
+      <Name>RealTimeArousalDetectionUsingGSRAsset</Name>
     </ProjectReference>
     <ProjectReference Include="..\RageAssetManager\RageAssetManager.csproj">
       <Project>{da8e9056-2e52-4029-81eb-a2d167614c47}</Project>

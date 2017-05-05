@@ -19,13 +19,14 @@
 using System;
 using System.Text;
 
-namespace Assets.Rage.GSRAsset.SignalProcessor
+namespace Assets.Rage.GSRAsset.Utils
 {
     public class ArousalStatistics
     {
         private double scrArousalArea;
         private double scrAchievedArousalLevel;
         private double sclAchievedArousalLevel;
+        private double generalArousalLevel;
         private ArousalFeature scrAmplitude;
         private ArousalFeature scrRise;
         private ArousalFeature scrRecoveryTime;
@@ -33,6 +34,9 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
         private double movingAverage;
         private double lastValue;
         private double lastRawSignalValue;
+        private double lastMedianFilterlValue;
+        private double highPassSignalValue;
+        private double lowPassSignalValue;
 
         public ArousalStatistics()
         {
@@ -99,6 +103,18 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
             }
         }
 
+        public double GeneralArousalLevel
+        {
+            get
+            {
+                return generalArousalLevel;
+            }
+            set
+            {
+                generalArousalLevel = value;
+            }
+        }
+
         public TonicStatistics TonicStatistics
         {
             get
@@ -151,6 +167,19 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
             }
         }
 
+        public double LastMedianFilterValue
+        {
+            get
+            {
+                return lastMedianFilterlValue;
+            }
+
+            set
+            {
+                lastMedianFilterlValue = value;
+            }
+        }
+
         public double LastRawSignalValue
         {
             get
@@ -164,16 +193,30 @@ namespace Assets.Rage.GSRAsset.SignalProcessor
             }
         }
 
-        public string ToString(String title)
+        public double HighPassSignalValue
         {
-            StringBuilder str = new StringBuilder();
-            str.Append("Arousal statistics for " + title + ": \n\n");
-            str.Append("Arousal area: " + scrArousalArea + "\n");
-            str.Append("Moving average: " + movingAverage + "\n");
-            str.Append(scrAmplitude.ToString());
-            str.Append("SCR arousal level: " + scrAchievedArousalLevel);
-        
-            return str.ToString();
+            get
+            {
+                return highPassSignalValue;
+            }
+
+            set
+            {
+                highPassSignalValue = value;
+            }
+        }
+
+        public double LowPassSignalValue
+        {
+            get
+            {
+                return lowPassSignalValue;
+            }
+
+            set
+            {
+                lowPassSignalValue = value;
+            }
         }
     }
 }

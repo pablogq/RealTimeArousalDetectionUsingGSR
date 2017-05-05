@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+using Assets.Rage.GSRAsset.Utils;
 using System.Collections.Generic;
 
 namespace Assets.Rage.GSRAsset.SignalDevice
@@ -25,12 +26,13 @@ namespace Assets.Rage.GSRAsset.SignalDevice
     /// </summary>
     public class Cache
     {
-        private readonly static int CACHE_MAX_SIZE = 1000;
+        private readonly static int CACHE_MAX_SIZE = (int)(RealTimeArousalDetectionAssetSettings.Instance.DefaultTimeWindow * (1000/RealTimeArousalDetectionAssetSettings.Instance.Samplerate));
         private static Dictionary<int, List<double>> channelsCache = new Dictionary<int, List<double>>();
 
         public Cache()
         {
-            // super()
+            //super();
+
         }
 
         /// <summary>
@@ -70,7 +72,6 @@ namespace Assets.Rage.GSRAsset.SignalDevice
             else
             {
                 channelsCache.Add(channel, cacheValues);
-                //Logger.Log("data: " + cacheValues);
             }
         }
 

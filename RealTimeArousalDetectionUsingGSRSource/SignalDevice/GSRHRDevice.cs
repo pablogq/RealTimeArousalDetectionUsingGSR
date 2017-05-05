@@ -16,31 +16,34 @@
  * limitations under the License.
  */
 
-using SignalDevice.Properties;
-using System;
-using System.Configuration;
-using System.IO.Ports;
+using HMDevice;
+using Assets.Rage.GSRAsset.Utils;
 
 namespace Assets.Rage.GSRAsset.SignalDevice
 {
     public class GSRHRDevice : ISignalDeviceController
     {
-        // The main control for communicating through the RS-232 port
-        //private SerialPort comport = SignalDeviceSerialPort.Instance;
-        private Settings settings = Settings.Default;
-        //private SignalDeviceUtils signalDeviceUtils;
-        private Configuration appConfig = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
         private int SampleRate = 0;
-        private HMDevice.HMDevice device =  new HMDevice.HMDevice();
+        private HMDevice.HMDevice device;
+        private static GSRHRDevice instance;
+        private RealTimeArousalDetectionAssetSettings settings;
 
-        public GSRHRDevice()
+        private GSRHRDevice()
         {
-            //super();
+            device = new HMDevice.HMDevice();
+            settings = RealTimeArousalDetectionAssetSettings.Instance;
         }
 
-        public void GetSignalData(byte[] data)
+        public static GSRHRDevice Instance
         {
-            throw new NotImplementedException();
+            get
+            {
+                if (instance == null)
+                {
+                    instance = new GSRHRDevice();
+                }
+                return instance;
+            }
         }
 
         public void OpenPort()
@@ -48,49 +51,49 @@ namespace Assets.Rage.GSRAsset.SignalDevice
             device.OpenPort();
         }
 
+        public void OpenPort(int sampleRate)
+        {
+            device.OpenPort(sampleRate);
+        }
+
         public void SelectCOMPort(string portName)
         {
             if (!device.IsPortOpen())
             {
-                //comport.PortName = portName;
                 device.SelectCOMPort(portName);
             }
         }
 
         public void SetSignalSettings()
         {
-            ConfigurationManager.RefreshSection("appSettings");
-
-            if (Convert.ToInt32(ConfigurationManager.AppSettings["Samplerate"]) < 1 && device.IsPortOpen())
+            if (settings.Samplerate < 1 && device.IsPortOpen())
             {
                 //default samplerate(speed/per second)
-                device.SetSignalSamplerate(20);
+                device.SetSignalSamplerate(100);
             }
             else
             {
-                int sampleRateSetting = Int16.Parse(ConfigurationManager.AppSettings["Samplerate"]);
+                int sampleRateSetting = settings.Samplerate;
                 device.SetSignalSamplerate(sampleRateSetting);
-                SampleRate = Convert.ToInt32(sampleRateSetting);
+                SampleRate = sampleRateSetting;
             }
         }
 
-        public int SetSignalSamplerate(string samplerate)
+        public int SetSignalSamplerate(int samplerate)
         {
-            device.SetSignalSamplerate(Int16.Parse(samplerate));
+            device.SetSignalSamplerate(samplerate);
             return -1;
         }
 
         public void SetSignalSamplerate()
         {
-            int sampleRateSettings = Int16.Parse(ConfigurationManager.AppSettings["Samplerate"]);
-            ConfigurationManager.RefreshSection("appSettings");
-            SampleRate = sampleRateSettings;
+            int sampleRateSettings = settings.Samplerate;
             device.SetSignalSamplerate(sampleRateSettings);
         }
 
         public int GetSignalSampleRate()
         {
-            if(SampleRate > 0)
+            if (SampleRate > 0)
             {
                 if (!(device.GetSignalSampleRate() > 0 && SampleRate == device.GetSignalSampleRate()))
                 {
@@ -101,18 +104,14 @@ namespace Assets.Rage.GSRAsset.SignalDevice
             }
             else
             {
-                ConfigurationManager.RefreshSection("appSettings");
-                int sampleRateSetting = Convert.ToInt32(ConfigurationManager.AppSettings["Samplerate"]);
-                SampleRate = sampleRateSetting;
-                //if (!(device.GetSignalSampleRate() > 0))device.SetSignalSamplerate(sampleRateSetting);
+                int sampleRateSetting = settings.Samplerate;
                 return sampleRateSetting;
             }
         }
 
         public int GetSignalSampleRateByConfig()
         {
-            ConfigurationManager.RefreshSection("appSettings");            
-            return Convert.ToInt32(ConfigurationManager.AppSettings["Samplerate"]);
+            return settings.Samplerate;
         }
 
         public int StartSignalsRecord()
@@ -123,7 +122,11 @@ namespace Assets.Rage.GSRAsset.SignalDevice
 
         public int StopSignalsRecord()
         {
-            if(!"TestWithoutDevice".Equals(ConfigurationManager.AppSettings.Get("ApplicationMode"))) device.StopSignalsTransfer();
+            if (!"TestWithoutDevice".Equals(settings.ApplicationMode))
+            {
+                device.StopSignalsTransfer();
+            }
+
             return 0;
         }
     }

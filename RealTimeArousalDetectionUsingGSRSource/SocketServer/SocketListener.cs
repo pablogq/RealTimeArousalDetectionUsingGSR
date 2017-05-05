@@ -16,34 +16,41 @@
  * limitations under the License.
  */
 
-using Assets.Rage.GSRAsset.SignalProcessor;
+using Assets.Rage.GSRAsset.Utils;
 using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using System.Configuration;
+using System.Net.NetworkInformation;
+using AssetPackage;
+using AssetManagerPackage;
+using System.Globalization;
 
 namespace Assets.Rage.GSRAsset.SocketServer
 {
     public class SocketListener
     {
         TcpListener server = null;
-        private Configuration appConfig = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-
+        private RealTimeArousalDetectionAssetSettings settings;
+        private ILog logger;
+        private bool isTcpListenerActive = false;
+        private TcpClient client;
 
         public void StartListening()
         {
+            settings = RealTimeArousalDetectionAssetSettings.Instance;
+            logger = (ILog)AssetManager.Instance.Bridge;
             try
             {
                 // Set the TcpListener
-                Int32 port = Int32.Parse(appConfig.AppSettings.Settings["SocketPort"].Value);
-                IPAddress localAddr = IPAddress.Parse(appConfig.AppSettings.Settings["SocketIPAddress"].Value);
-
+                Int32 port = settings.SocketPort;
+                IPAddress localAddr = IPAddress.Parse(settings.SocketIPAddress);
                 server = new TcpListener(localAddr, port);
 
                 // Start listening for client requests.
                 server.Start();
+                isTcpListenerActive = true;
 
                 GSRSignalProcessor gsrHandler = new GSRSignalProcessor();
 
@@ -52,14 +59,10 @@ namespace Assets.Rage.GSRAsset.SocketServer
                 String data = null;
 
                 // Enter the listening loop.
-                while (true)
+                while (true && isTcpListenerActive)
                 {
-                    //Logger.Log("Waiting for a connection... ");
-
-                    // Perform a blocking call to accept requests.
                     // You could also user server.AcceptSocket() here.
-                    TcpClient client = server.AcceptTcpClient();
-                    //Logger.Log("Connected!");
+                    client = server.AcceptTcpClient();
 
                     data = null;
 
@@ -73,7 +76,6 @@ namespace Assets.Rage.GSRAsset.SocketServer
                     {
                         // Translate data bytes to a ASCII string.
                         data = System.Text.Encoding.ASCII.GetString(bytes, 0, i);
-                        //Logger.Log("Text received from client: " + data);
 
                         StringBuilder response = new StringBuilder();
                         response.Append("Received at ");
@@ -81,13 +83,21 @@ namespace Assets.Rage.GSRAsset.SocketServer
                         response.Append("\r\n");
                         response.Append(data);
 
+                        //Start Of Calibration Period
+                        if (data.Equals("SOCP"))
+                        {
+                            response.Append("\r\n");
+                            string result = gsrHandler.StartOfCalibrationPeriod();
+                            response.Append(result);
+                        }
+
                         //End Of Calibration Period
                         if (data.Equals("EOCP"))
                         {
                             response.Append("\r\n");
-                            response.Append(gsrHandler.EndOfCalibrationPeriod());
+                            string result = gsrHandler.EndOfCalibrationPeriod();
+                            response.Append(result);
                         }
-
 
                         if (data.Equals("GET_EDA"))
                         {
@@ -100,14 +110,14 @@ namespace Assets.Rage.GSRAsset.SocketServer
                         if (data.Equals("EOM"))
                         {
                             response.Append("\r\n");
-                            response.Append(gsrHandler.EndOfMeasurement());
+                            string result = gsrHandler.EndOfMeasurement();
+                            response.Append(result);
                         }
 
                         byte[] msg = System.Text.Encoding.ASCII.GetBytes(response.ToString());
 
                         // Send back a response.
                         stream.Write(msg, 0, msg.Length);
-                        Logger.Log("Sent: " + data);
                     }
 
                     // Shutdown and end connection
@@ -116,11 +126,14 @@ namespace Assets.Rage.GSRAsset.SocketServer
             }
             catch (SocketException e)
             {
-                Logger.Log("SocketException: " + e);
+                isTcpListenerActive = false;
+                logger.Log(Severity.Error, "SocketException: " + e);
             }
             finally
             {
                 // Stop listening for new clients.
+                isTcpListenerActive = false;
+                if(client != null) client.Close();
                 server.Stop();
             }
         }
@@ -129,11 +142,14 @@ namespace Assets.Rage.GSRAsset.SocketServer
         {
             try
             {
+                if(client != null) client.Close();
                 server.Stop();
+                isTcpListenerActive = false;
             }
             catch(Exception e)
             {
-                Logger.Log(e.ToString());
+                isTcpListenerActive = false;
+                logger.Log(Severity.Error, e.ToString());
             }
         }
 
@@ -141,6 +157,24 @@ namespace Assets.Rage.GSRAsset.SocketServer
         {
             Thread t = new Thread(StartListening);
             t.Start();
+        }
+
+        public bool IsSocketConnected()
+        {
+            bool inUse = false;
+            IPGlobalProperties ipProperties = IPGlobalProperties.GetIPGlobalProperties();
+            IPEndPoint[] ipEndPoints = ipProperties.GetActiveTcpListeners();
+
+            foreach (IPEndPoint endPoint in ipEndPoints)
+            {
+                if (endPoint.Port == settings.SocketPort)
+                {
+                    inUse = true;
+                    break;
+                }
+            }
+
+            return isTcpListenerActive || inUse;
         }
     }
 }
