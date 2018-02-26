@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Assets.Rage.GSRAsset.Integrator
+namespace Assets.Rage.RealTimeArousalDetectionUsingGSRAsset
 {
     public class ErrorStartSignalDevice
     {

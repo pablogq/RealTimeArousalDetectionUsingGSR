@@ -18,15 +18,15 @@
 
 using AssetManagerPackage;
 using AssetPackage;
-using Assets.Rage.GSRAsset.SignalDevice;
-using Assets.Rage.GSRAsset.SocketServer;
-using Assets.Rage.GSRAsset.Utils;
+using Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.SignalDevice;
+using Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.SocketServer;
+using Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.Utils;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 
-namespace Assets.Rage.GSRAsset.Integrator
+namespace Assets.Rage.RealTimeArousalDetectionUsingGSRAsset
 {
     public class RealTimeArousalDetectionUsingGSRAsset : BaseAsset, ISignalDeviceController
     {

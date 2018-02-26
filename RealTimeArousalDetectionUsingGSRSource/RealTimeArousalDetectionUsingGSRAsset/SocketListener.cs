@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-using Assets.Rage.GSRAsset.Utils;
+using Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.Utils;
 using System;
 using System.Net;
 using System.Net.Sockets;
@@ -25,9 +25,8 @@ using System.Threading;
 using System.Net.NetworkInformation;
 using AssetPackage;
 using AssetManagerPackage;
-using Assets.Rage.GSRAsset.Integrator;
 
-namespace Assets.Rage.GSRAsset.SocketServer
+namespace Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.SocketServer
 {
     public class SocketListener
     {
