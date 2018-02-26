@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-using Assets.Rage.GSRAsset.Utils;
+using Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.Utils;
 using System.Collections.Generic;
 
-namespace Assets.Rage.GSRAsset.SignalDevice
+namespace Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.SignalDevice
 {
     /// <summary>
     /// For each channel (GSR channel and HR channel) we save the data received by the used device in a cache

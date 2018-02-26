@@ -19,15 +19,13 @@
 using AssetManagerPackage;
 using AssetPackage;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.Serialization;
 
-namespace Assets.Rage.GSRAsset.Utils
+namespace Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.Utils
 {
     public class RealTimeArousalDetectionAssetSettings : BaseSettings
     {
@@ -286,7 +284,7 @@ namespace Assets.Rage.GSRAsset.Utils
                 
             if (storage != null && source != null && storage.Exists(source))
             {
-                XElement xml = XElement.Load(storage.GetPath(source));
+                XElement xml = XElement.Parse(storage.Load(source));
                 this.LogFile = xml.Element("LogFile").Value;
                 this.TestData = xml.Element("TestData").Value;
                 this.MinGSRDeviceSignalValue = Convert.ToDouble(xml.Element("MinGSRDeviceSignalValue").Value, CultureInfo.InvariantCulture);

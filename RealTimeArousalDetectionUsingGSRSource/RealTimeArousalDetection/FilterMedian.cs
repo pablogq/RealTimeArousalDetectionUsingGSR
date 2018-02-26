@@ -19,7 +19,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Assets.Rage.GSRAsset.Utils
+namespace Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.Utils
 {
     class FilterMedian
     {

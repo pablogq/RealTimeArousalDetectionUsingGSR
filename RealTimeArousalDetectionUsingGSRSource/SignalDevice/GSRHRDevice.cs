@@ -17,9 +17,9 @@
  */
 
 using HMDevice;
-using Assets.Rage.GSRAsset.Utils;
+using Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.Utils;
 
-namespace Assets.Rage.GSRAsset.SignalDevice
+namespace Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.SignalDevice
 {
     public class GSRHRDevice : ISignalDeviceController
     {

@@ -18,7 +18,7 @@
 
 using System.IO.Ports;
 
-namespace Assets.Rage.GSRAsset.SignalDevice
+namespace Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.SignalDevice
 {
     /*
      * The serial port should have only one instance.

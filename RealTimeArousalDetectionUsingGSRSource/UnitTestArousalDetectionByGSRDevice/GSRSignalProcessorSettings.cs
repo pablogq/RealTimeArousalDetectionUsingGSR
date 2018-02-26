@@ -16,10 +16,9 @@
  * limitations under the License.
  */
 
-using Assets.Rage.GSRAsset.Integrator;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Assets.Rage.GSRAsset.UnitTest
+namespace Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.UnitTest
 {
     [TestClass]
     public class GSRSignalProcessorSettings

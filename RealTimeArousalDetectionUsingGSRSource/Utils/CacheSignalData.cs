@@ -18,7 +18,7 @@
 
 using System;
 using System.Collections.Generic;
-using Assets.Rage.GSRAsset.Utils;
+using Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.Utils;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -31,7 +31,6 @@ public class CacheSignalData
 {
     private readonly static int CACHE_MAX_SIZE = 1000;
     private static List<SignalDataByTime> signalValuesCache;
-    private static ILog  logger = (ILog)AssetManager.Instance.Bridge;
 
     private RealTimeArousalDetectionAssetSettings config;
     private static String applicationMode;
@@ -160,17 +159,6 @@ public class CacheSignalData
                     j++;
                 }
             }
-        }
-
-        return result;
-    }
-
-    private List<SignalDataByTime> CopyListItems(SignalDataByTime[] list)
-    {
-        List<SignalDataByTime> result = new List<SignalDataByTime>();
-        foreach (SignalDataByTime listItem in list)
-        {
-            if (listItem != null) result.Add(listItem);
         }
 
         return result;

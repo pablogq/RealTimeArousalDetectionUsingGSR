@@ -57,7 +57,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\HMDevice\HMDevice.vcxproj">
-      <Project>{c0c2f71f-ea5b-46c8-b295-83de2ab537d1}</Project>
+      <Project>{1deff052-1953-4de5-9e73-1f3e14ee2565}</Project>
       <Name>HMDevice</Name>
     </ProjectReference>
     <ProjectReference Include="..\Utils\Utils.csproj">

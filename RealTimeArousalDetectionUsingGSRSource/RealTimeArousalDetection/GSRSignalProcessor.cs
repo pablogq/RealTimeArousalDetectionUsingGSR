@@ -17,7 +17,7 @@
  */
 
 using System;
-using Assets.Rage.GSRAsset.SignalDevice;
+using Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.SignalDevice;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web.Script.Serialization;
@@ -26,7 +26,7 @@ using AssetPackage;
 using AssetManagerPackage;
 using System.Globalization;
 
-namespace Assets.Rage.GSRAsset.Utils
+namespace Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.Utils
 {
     public class GSRSignalProcessor
     {

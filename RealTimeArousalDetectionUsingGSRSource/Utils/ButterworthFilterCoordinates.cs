@@ -18,7 +18,7 @@
 
 using System.Collections.Generic;
 
-namespace Assets.Rage.GSRAsset.Utils
+namespace Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.Utils
 {
     public class ButterworthFilterCoordinates
     {

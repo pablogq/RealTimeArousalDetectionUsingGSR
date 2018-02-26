@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-namespace Assets.Rage.GSRAsset.Utils
+namespace Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.Utils
 {
         public enum TimeWindowMeasure
         {

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-namespace Assets.Rage.GSRAsset.SignalDevice
+namespace Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.SignalDevice
 {
     public enum DataMode { Text, Hex };
 
