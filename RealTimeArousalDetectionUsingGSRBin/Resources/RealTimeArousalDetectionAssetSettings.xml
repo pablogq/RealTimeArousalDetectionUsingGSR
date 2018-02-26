@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <RealTimeArousalDetectionAssetSettings>
-  <LogFile>C:/Users/ddessy/logs/log.txt</LogFile>
-  <TestData>C:/Users/ddessy/logs/testData.txt</TestData>
+  <LogFile>C:/Users/XXX/logs/log.txt</LogFile>
+  <TestData>C:/Users/XXX/logs/testData.txt</TestData>
 
   <MinGSRDeviceSignalValue>488</MinGSRDeviceSignalValue>
   <MaxGSRDeviceSignalValue>2000000</MaxGSRDeviceSignalValue>
