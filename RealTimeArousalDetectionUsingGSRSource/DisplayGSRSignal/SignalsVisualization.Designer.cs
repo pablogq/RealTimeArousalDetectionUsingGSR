@@ -2,7 +2,7 @@
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
 
-namespace Assets.Rage.GSRAsset.DisplayGSRSignal
+namespace Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.DisplayGSRSignal
 {
     partial class SignalsVisualization
     {

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-using Assets.Rage.GSRAsset.Utils;
+using Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.Utils;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -24,11 +24,10 @@ using System.Linq;
 using System.Windows.Forms;
 using System.Windows.Forms.DataVisualization.Charting;
 using System.Globalization;
-using Assets.Rage.GSRAsset.Integrator;
 using AssetManagerPackage;
 using AssetPackage;
 
-namespace Assets.Rage.GSRAsset.DisplayGSRSignal
+namespace Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.DisplayGSRSignal
 {
     public partial class SignalsVisualization : Form
     {

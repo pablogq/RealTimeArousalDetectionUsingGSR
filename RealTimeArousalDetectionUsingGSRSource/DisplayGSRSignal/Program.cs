@@ -19,7 +19,7 @@
 using System;
 using System.Windows.Forms;
 
-namespace Assets.Rage.GSRAsset.DisplayGSRSignal
+namespace Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.DisplayGSRSignal
 {
     static class Program
     {

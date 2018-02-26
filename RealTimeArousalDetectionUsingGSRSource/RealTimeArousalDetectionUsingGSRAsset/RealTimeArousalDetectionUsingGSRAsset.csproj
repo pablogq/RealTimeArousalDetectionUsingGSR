@@ -7,7 +7,7 @@
     <ProjectGuid>{50B7F5AE-9889-44F1-921A-3DC57ECABD8D}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>GSRProcessorDeviceIntegrator</RootNamespace>
+    <RootNamespace>Assets.Rage.RealTimeArousalDetectionUsingGSRAsset</RootNamespace>
     <AssemblyName>RealTimeArousalDetectionUsingGSRAsset</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -64,7 +64,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Resources\RealTimeArousalDetectionUsingGSRAsset.VersionAndDependencies.xml" />
+    <EmbeddedResource Include="Resources\RealTimeArousalDetectionUsingGSRAsset.VersionAndDependencies.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
