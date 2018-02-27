@@ -137,5 +137,4 @@ The measured and calculated from the asset emotional arousal status of the curre
 ```
 
 ## Licensing
-
-No specific licensing is required. However, the asset is dependent on usage of a custom EDA measuring device, although it could be redone for any other suitable EDA meter.
+<a href="https://github.com/ddessy/RealTimeArousalDetectionUsingGSR/blob/master/Docs/LICENSE.txt"><img width="100px" src="https://github.com/ddessy/RealTimeArousalDetectionUsingGSR/blob/master/Docs/licenseApache2.0.png"/></a>
