@@ -96,7 +96,8 @@ namespace Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.DisplayGSRSignal
 
             lock (lockObj)
             {
-                if (Directory.Exists(logFileName.Substring(0, logFileName.LastIndexOf('/'))) || Directory.Exists(logFileName.Substring(0, logFileName.LastIndexOf('\\'))))
+                if ((logFileName.LastIndexOf('/') != -1 && Directory.Exists(logFileName.Substring(0, logFileName.LastIndexOf('/')))) || 
+					(logFileName.LastIndexOf('\\') != -1 && Directory.Exists(logFileName.Substring(0, logFileName.LastIndexOf('\\')))))
                 {
                     using (StreamWriter streamWriter = File.AppendText(logFileName))
                     {
