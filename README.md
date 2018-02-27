@@ -137,4 +137,8 @@ The measured and calculated from the asset emotional arousal status of the curre
 ```
 
 ## Licensing
+<<<<<<< HEAD
 <a href="https://github.com/ddessy/RealTimeArousalDetectionUsingGSR/blob/master/Docs/LICENSE.txt"><img width="100px" src="https://github.com/ddessy/RealTimeArousalDetectionUsingGSR/blob/master/Docs/licenseApache2.0.png"/></a>
+=======
+![LICENSE](https://github.com/ddessy/RealTimeArousalDetectionUsingGSR/blob/master/Docs/licenseApache2.0.png) 
+>>>>>>> 55e80090181fe63269ae12811d5043ada9dfa884
