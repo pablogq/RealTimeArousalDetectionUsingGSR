@@ -19,13 +19,15 @@
 #pragma once
 
 #using <System.dll>
-#using <Utils.dll>
+//#using <Utils.dll>
 
 using namespace System;
 using namespace System::IO;
 using namespace System::ComponentModel;
 using namespace System::Collections;
 using namespace System::IO::Ports;
+using namespace AssetPackage;
+using namespace AssetManagerPackage;
 
 namespace HMDevice {
 
@@ -42,6 +44,7 @@ namespace HMDevice {
 	private: int tempDevider;
 	private: int sampleRate;
 	private: CacheSignalData^ cacheData;
+	private: ILog^ logger;
 
 	public:HMDevice(void);
 	protected:~HMDevice();

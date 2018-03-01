@@ -31,6 +31,7 @@ namespace HMDevice {
 		this->_serialPort->DataReceived += gcnew SerialDataReceivedEventHandler(this, &HMDevice::DataReceivedHandler);
 		this->_serialPort->PinChanged += gcnew SerialPinChangedEventHandler(port_PinChanged);
 		cacheData = CacheSignalData::Instance;
+		logger = (AssetPackage::ILog^) AssetManager::Instance->Bridge;
 	}
 
 	HMDevice::~HMDevice()
@@ -116,7 +117,14 @@ namespace HMDevice {
 		if (portName->Equals("N.A."))
 		{
 			array<String^>^ objectArray = SerialPort::GetPortNames();
-			this->_serialPort->PortName = objectArray[0];
+			if (objectArray->Length > 0)
+			{
+				this->_serialPort->PortName = objectArray[0];
+			}
+			else
+			{
+				logger->Log(Severity::Information, "No one COMPort exists.");
+			}
 		}
 		else
 		{
@@ -211,17 +219,18 @@ namespace HMDevice {
 			{
 				dataRxEnable = false;
 				this->_serialPort->BaudRate = 115200;
+				logger->Log(Severity::Information, "Try to open the port: " + this->_serialPort->PortName);
 				//open serial port 
 				this->_serialPort->Open();
 			}
 			else
 			{
-				//"Port isn't openned";
+				logger->Log(Severity::Information, "Serial port can not be openned");
 			}
 		}
 		catch (UnauthorizedAccessException^) 
 		{
-			// "UnauthorizedAccess";
+			logger->Log(Severity::Information, "UnauthorizedAccess");
 		}
 	}
 
@@ -240,7 +249,7 @@ namespace HMDevice {
 			}
 			else
 			{
-				//"Port isn't openned";
+				logger->Log(Severity::Information, "Serial port can not be openned");
 			}
 		}
 		catch (UnauthorizedAccessException^) 

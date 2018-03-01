@@ -445,8 +445,15 @@ namespace Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.DisplayGSRSignal
 
                 if (!"BackgroundMode".Equals(settings.FormMode))
                 {
-                    if (gsrAsset.IsSocketConnected()) btnSocketLight.BackColor = Color.GreenYellow;
-                    else btnSocketLight.BackColor = Color.Red;
+					bool result = gsrAsset.IsSocketConnected();
+					if (gsrAsset.IsSocketConnected())
+					{
+						btnSocketLight.BackColor = Color.GreenYellow;
+					}
+					else
+					{
+						btnSocketLight.BackColor = Color.Red;
+					}
 
                     btnStopSocket.Visible = true;
                     btnStartSocket.Visible = false;

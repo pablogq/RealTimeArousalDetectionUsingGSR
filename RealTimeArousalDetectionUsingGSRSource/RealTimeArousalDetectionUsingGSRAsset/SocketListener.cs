@@ -133,18 +133,18 @@ namespace Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.SocketServer
                 // Stop listening for new clients.
                 isTcpListenerActive = false;
                 if(client != null) client.Close();
-                server.Stop();
-            }
+				if (server != null) server.Stop();
+			}
         }
 
         public void CloseSocket()
         {
             try
             {
+				isTcpListenerActive = false;
                 if(client != null) client.Close();
-                server.Stop();
-                isTcpListenerActive = false;
-            }
+				if (server != null) server.Stop();                
+			}
             catch(Exception e)
             {
                 isTcpListenerActive = false;
@@ -160,20 +160,30 @@ namespace Assets.Rage.RealTimeArousalDetectionUsingGSRAsset.SocketServer
 
         public bool IsSocketConnected()
         {
-            bool inUse = false;
-            IPGlobalProperties ipProperties = IPGlobalProperties.GetIPGlobalProperties();
-            IPEndPoint[] ipEndPoints = ipProperties.GetActiveTcpListeners();
+			
+			try
+			{
+				bool inUse = false;
+				IPGlobalProperties ipProperties = IPGlobalProperties.GetIPGlobalProperties();
+				IPEndPoint[] ipEndPoints = ipProperties != null ? ipProperties.GetActiveTcpListeners() : null;
 
-            foreach (IPEndPoint endPoint in ipEndPoints)
-            {
-                if (endPoint.Port == settings.SocketPort)
-                {
-                    inUse = true;
-                    break;
-                }
-            }
+				foreach (IPEndPoint endPoint in ipEndPoints)
+				{
+					if (endPoint.Port == settings.SocketPort)
+					{
+						inUse = true;
+						break;
+					}
+				}
 
-            return isTcpListenerActive || inUse;
+				return isTcpListenerActive || inUse;
+			}
+			catch (Exception e)
+			{
+				if(logger != null) logger.Log(Severity.Error, "Exception: " + e.ToString());
+			}
+
+			return false;
         }
     }
 }
