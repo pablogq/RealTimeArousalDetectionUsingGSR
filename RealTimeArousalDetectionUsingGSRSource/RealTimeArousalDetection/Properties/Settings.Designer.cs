@@ -12,12 +12,11 @@ namespace RealTimeArousalDetection.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "14.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "16.0.0.0")]
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
         
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
-        internal double DefaultTimeWindow;
-
+        
         public static Settings Default {
             get {
                 return defaultInstance;
@@ -50,7 +49,7 @@ namespace RealTimeArousalDetection.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("4000")]
+        [global::System.Configuration.DefaultSettingValueAttribute("5000")]
         public double MaxAbsoluteArousalArea {
             get {
                 return ((double)(this["MaxAbsoluteArousalArea"]));
@@ -62,7 +61,7 @@ namespace RealTimeArousalDetection.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("4000")]
+        [global::System.Configuration.DefaultSettingValueAttribute("5000")]
         public double MaxAverageArousalArea {
             get {
                 return ((double)(this["MaxAverageArousalArea"]));
@@ -171,18 +170,6 @@ namespace RealTimeArousalDetection.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("-100")]
-        public double CalibrationMinTonicAmplitude {
-            get {
-                return ((double)(this["CalibrationMinTonicAmplitude"]));
-            }
-            set {
-                this["CalibrationMinTonicAmplitude"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("-100")]
         public double CalibrationMaxTonicAmplitude {
             get {
                 return ((double)(this["CalibrationMaxTonicAmplitude"]));
@@ -237,6 +224,30 @@ namespace RealTimeArousalDetection.Properties {
             }
             set {
                 this["MaxTonicAmplitude"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("8")]
+        public double DefaultTimeWindow {
+            get {
+                return ((double)(this["DefaultTimeWindow"]));
+            }
+            set {
+                this["DefaultTimeWindow"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("100")]
+        public double CalibrationMinTonicAmplitude {
+            get {
+                return ((double)(this["CalibrationMinTonicAmplitude"]));
+            }
+            set {
+                this["CalibrationMinTonicAmplitude"] = value;
             }
         }
     }
